@@ -1,0 +1,337 @@
+/* =========================================
+   LOGIN PAGE SPLIT-SCREEN & THEME STYLES
+   ========================================= */
+
+html, body {
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #064e3b;
+  font-family: inherit;
+}
+
+.login-layout {
+  display: flex;
+  flex-direction: row;
+  height: 100vh;
+  width: 100vw;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  padding: 2rem 5rem;
+  gap: 4rem;
+  background: linear-gradient(135deg, #064e3b 0%, #022c22 100%);
+}
+
+/* Left Sidebar Panel */
+.login-sidebar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 500px;
+}
+
+.sidebar-title {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  justify-content: flex-start;
+}
+
+.text-left {
+  text-align: left;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+.sidebar-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  width: 100%;
+}
+
+.sidebar-cards .stat-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1rem 1.2rem;
+  border-radius: 14px;
+  backdrop-filter: blur(10px);
+}
+
+/* Right Form Panel */
+.login-form-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 440px;
+  width: 100%;
+  max-height: 92vh;
+  overflow-y: auto; /* Allows smooth scrolling if screen is short */
+  padding-right: 4px;
+}
+
+/* Custom Scrollbar for the form container */
+.login-form-container::-webkit-scrollbar {
+  width: 4px;
+}
+.login-form-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+}
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: white;
+  text-decoration: none;
+  background: rgba(255, 255, 255, 0.15);
+  padding: 0.4rem 0.9rem;
+  border-radius: 50px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  margin-bottom: 0.8rem;
+  font-size: 0.85rem;
+  transition: all 0.3s ease;
+}
+
+.back-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+.glass-form-card {
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 20px;
+  padding: 1.8rem;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+  box-sizing: border-box;
+}
+
+.form-header {
+  text-align: center;
+  margin-bottom: 1.2rem;
+}
+
+.college-icon {
+  width: 40px;
+  height: 40px;
+  background: rgba(6, 78, 59, 0.1);
+  color: #064e3b;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  margin: 0 auto 0.8rem auto;
+}
+
+.form-header h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+  color: #111827;
+}
+
+.form-header p {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+.role-toggle {
+  display: flex;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 3px;
+  margin-bottom: 1.2rem;
+}
+
+.role-btn {
+  flex: 1;
+  padding: 0.6rem;
+  border: none;
+  background: transparent;
+  color: #4b5563;
+  font-weight: 600;
+  font-size: 0.85rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.role-btn.active {
+  background: #064e3b;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(6, 78, 59, 0.3);
+}
+
+.input-group {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.input-group label {
+  font-size: 0.8rem;
+  color: #374151;
+  font-weight: 500;
+}
+
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 0.9rem;
+  color: #9ca3af;
+  font-size: 1.1rem;
+}
+
+.input-wrapper input {
+  width: 100%;
+  background: #f9fafb;
+  border: 1px solid #d1d5db;
+  color: #1f2937;
+  padding: 0.7rem 1rem 0.7rem 2.8rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.input-wrapper input:focus {
+  border-color: #064e3b;
+  box-shadow: 0 0 0 3px rgba(6, 78, 59, 0.15);
+}
+
+.input-wrapper input::placeholder {
+  color: #9ca3af;
+}
+
+.btn-icon {
+  position: absolute;
+  right: 0.4rem;
+  background: transparent;
+  border: none;
+  color: #6b7280;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  transition: all 0.2s ease;
+}
+
+.btn-icon:hover {
+  background: #e5e7eb;
+  color: #111827;
+}
+
+.captcha-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f9fafb;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  padding: 0.3rem 0.8rem;
+  margin-bottom: 0.4rem;
+}
+
+.captcha-display {
+  font-family: monospace;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: #0f172a;
+}
+
+.refresh-captcha {
+  position: static;
+  background: #e5e7eb;
+  border: 1px solid #d1d5db;
+}
+
+.w-100 {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+  padding: 0.9rem;
+  border-radius: 10px;
+  background: #064e3b;
+  border: none;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(6, 78, 59, 0.4);
+  transition: opacity 0.3s ease;
+}
+
+.w-100:hover {
+  opacity: 0.9;
+}
+
+.forgot-link {
+  display: block;
+  text-align: center;
+  margin-top: 1rem;
+  color: #6b7280;
+  font-size: 0.85rem;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.forgot-link:hover {
+  color: #064e3b;
+}
+
+/* Responsive layout for smaller screens */
+@media (max-width: 968px) {
+  html, body {
+    overflow: auto;
+    height: auto;
+  }
+  .login-layout {
+    flex-direction: column;
+    padding: 2rem 1.5rem;
+    height: auto;
+  }
+  .login-sidebar, .login-form-container {
+    max-width: 100%;
+    align-items: center;
+    text-align: center;
+    max-height: none;
+    overflow-y: visible;
+  }
+  .sidebar-title {
+    justify-content: center;
+  }
+  .text-left {
+    text-align: center;
+  }
+  .back-btn {
+    align-self: flex-start;
+  }
+}

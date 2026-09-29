@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>MentorMetrics - Mentor Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="store.js"></script>
+<script src="leetcode.js"></script>
+<link rel="stylesheet" href="styles.css" />
+<style>
+  /* ---------- Mentor-only additions (kept separate from styles.css) ---------- */
+  .stat-row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 22px; }
+
+  .mentee-card {
+    display: flex; justify-content: space-between; align-items: center;
+    border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px;
+  }
+  .mentee-info .name { font-size: 14px; font-weight: 600; }
+  .mentee-info .sub { font-size: 12px; color: var(--text-soft); margin-top: 2px; }
+  .mentee-actions { display: flex; gap: 8px; }
+
+  .btn-accept { background: #4CAF7D; color: white; border: none; padding: 7px 14px; border-radius: 7px; font-size: 12.5px; cursor: pointer; }
+  .btn-reject { background: #E85C5C; color: white; border: none; padding: 7px 14px; border-radius: 7px; font-size: 12.5px; cursor: pointer; }
+  .btn-view { background: var(--accent); color: white; border: none; padding: 7px 14px; border-radius: 7px; font-size: 12.5px; cursor: pointer; }
+
+  .subtab-row { display: flex; gap: 8px; margin-bottom: 16px; }
+  .subtab-btn {
+    background: var(--bg); color: var(--text-soft); border: 1px solid var(--border);
+    padding: 8px 14px; border-radius: 8px; font-size: 13px; cursor: pointer;
+  }
+  .subtab-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+  .subtab-panel { display: none; }
+  .subtab-panel.open { display: block; }
+
+  .item-type-tag {
+    display: inline-block; font-size: 10.5px; padding: 2px 9px; border-radius: 20px;
+    color: white; margin-right: 8px;
+  }
+  .item-type-tag.task { background: var(--accent); }
+  .item-type-tag.project { background: #4C8DE8; }
+  .item-type-tag.poll { background: #B9852F; }
+  .item-type-tag.info { background: #6B5CA5; }
+
+  .student-detail-panel { display: none; border-top: 1px solid var(--border); margin-top: 12px; padding-top: 12px; }
+  .student-detail-panel.open { display: block; }
+  /* .detail-grid / .detail-field now live in the shared styles.css */
+  .marks-row {
+    display: grid; grid-template-columns: 1.6fr 1.6fr 60px; gap: 10px; align-items: center;
+    padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 13px;
+  }
+
+  .req-card { border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
+  .req-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .req-name { font-size: 13.5px; font-weight: 600; }
+  .req-change { font-size: 13px; color: var(--text); margin-bottom: 4px; }
+  .req-proof { font-size: 12px; color: var(--text-soft); margin-bottom: 10px; }
+  .req-status { font-size: 12px; font-weight: 600; color: #F5A25D; }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="logo">
+      <img src="college-logo.png" alt="St. Joseph's College of Engineering" class="logo-img" />
+      <span>MentorMetrics</span>
+    </div>
+
+    <div class="nav-label">GENERAL</div>
+    <button class="nav-link active" onclick="showSection('dashboard', this)">Dashboard</button>
+    <button class="nav-link" onclick="showSection('tasks', this)">Tasks</button>
+    <button class="nav-link" onclick="showSection('students', this)">Student Details</button>
+    <button class="nav-link" onclick="showSection('reports', this)">Student Reports</button>
+    <button class="nav-link" onclick="showSection('github', this)">GitHub Tracker</button>
+    <button class="nav-link" onclick="showSection('requests', this)">Requests</button>
+
+    <div class="nav-label">ACCOUNT</div>
+    <button class="nav-link" onclick="showSection('settings', this)">Settings</button>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <div class="topbar">
+      <h1>Hi, <b id="greetName"></b>!</h1>
+      <div class="topbar-right">
+        <div class="bell-wrap">
+          <button class="bell-btn" onclick="toggleNotifications()">
+            🔔
+            <span class="bell-badge" id="bellBadge">0</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Full-page notifications overlay -->
+    <div class="notif-overlay" id="notifOverlay" onclick="if(event.target===this) toggleNotifications()">
+      <div class="notif-page">
+        <div class="notif-page-header">
+          <h2>Notifications</h2>
+          <button class="notif-close-btn" onclick="toggleNotifications()">✕</button>
+        </div>
+        <div id="notifList"></div>
+      </div>
+    </div>
+
+    <!-- ===================== DASHBOARD ===================== -->
+    <div class="section active" id="section-dashboard">
+      <div class="stat-row3">
+        <div class="stat-card purple">
+          <div class="num" id="menteeCount">0</div>
+          <div class="lbl">My Mentees</div>
+        </div>
+        <div class="stat-card orange">
+          <div class="num" id="divisionCount">0</div>
+          <div class="lbl">Divisions Represented</div>
+        </div>
+        <div class="batch-card">
+          <div class="batch-row">
+            <div><b id="batchAvg">--%</b>Batch average readiness score</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>My Mentees</h3>
+        <p style="font-size:12.5px;color:var(--text-soft);margin-bottom:14px;">
+          Assigned by your department coordinator: an even stratified mix across all 5 divisions, not by roll number.
+        </p>
+        <div id="divisionBreakdown" style="margin-bottom:16px;"></div>
+        <div id="menteeList"></div>
+      </div>
+    </div>
+
+    <!-- ===================== TASKS ===================== -->
+    <div class="section" id="section-tasks">
+      <div class="card">
+        <h3>Assign Work</h3>
+        <div class="subtab-row">
+          <button class="subtab-btn active" onclick="showSubtab('task', this)">+ Add Task</button>
+          <button class="subtab-btn" onclick="showSubtab('project', this)">+ Add Project</button>
+          <button class="subtab-btn" onclick="showSubtab('poll', this)">+ Create Poll</button>
+          <button class="subtab-btn" onclick="showSubtab('info', this)">+ Request Info</button>
+        </div>
+
+        <div class="subtab-panel open" id="subtab-task">
+          <label>Task Title</label>
+          <input type="text" id="taskTitle" placeholder="e.g. Reach 550 coding problems solved" />
+          <label>Related Parameter</label>
+          <select id="taskParam"></select>
+          <label>Assign To</label>
+          <select id="taskAssignee"><option value="all">All Mentees</option></select>
+          <label>Due Date</label>
+          <input type="text" id="taskDue" placeholder="e.g. 20 Sep 2026" />
+          <button class="btn-submit" onclick="addItem('task')">Add Task</button>
+        </div>
+
+        <div class="subtab-panel" id="subtab-project">
+          <label>Project Title</label>
+          <input type="text" id="projectTitle" placeholder="e.g. Batch mini-project on IoT" />
+          <label>Description</label>
+          <textarea id="projectDesc" rows="2" placeholder="Short description"></textarea>
+          <label>Assign To</label>
+          <select id="projectAssignee"><option value="all">All Mentees</option></select>
+          <label>Due Date</label>
+          <input type="text" id="projectDue" placeholder="e.g. 30 Sep 2026" />
+          <button class="btn-submit" onclick="addItem('project')">Add Project</button>
+        </div>
+
+        <div class="subtab-panel" id="subtab-poll">
+          <label>Poll Question</label>
+          <input type="text" id="pollQuestion" placeholder="e.g. Preferred time for mock test?" />
+          <label>Options (comma separated)</label>
+          <input type="text" id="pollOptions" placeholder="e.g. 10 AM, 2 PM, 5 PM" />
+          <button class="btn-submit" onclick="addItem('poll')">Create Poll</button>
+        </div>
+
+        <div class="subtab-panel" id="subtab-info">
+          <p style="font-size:12.5px;color:var(--text-soft);margin-bottom:14px;">
+            Ask for any piece of information as free text &mdash; not just links. Mentees answer it once and it's saved to their profile.
+          </p>
+          <label>What do you want to ask for?</label>
+          <input type="text" id="infoLabel" placeholder="e.g. Codeforces handle, hostel room number, T-shirt size..." />
+          <label>Assign To</label>
+          <select id="infoAssignee"><option value="all">All Mentees</option></select>
+          <button class="btn-submit" onclick="addItem('info')">Create Request</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Everything You've Assigned</h3>
+        <div id="assignedList"></div>
+      </div>
+    </div>
+
+    <!-- ===================== STUDENT DETAILS ===================== -->
+    <div class="section" id="section-students">
+      <div class="card">
+        <h3>Student Details</h3>
+        <p style="font-size:12.5px;color:var(--text-soft);margin-bottom:12px;">
+          LeetCode progress (Easy/Medium/Hard solved) is pulled live for every mentee who has submitted their username &mdash; no screenshots, no opening profile links.
+        </p>
+        <button class="btn-submit" id="syncAllLcBtn" style="margin-bottom:16px;" onclick="syncAllLeetcode()">Sync All LeetCode</button>
+        <div id="studentDetailList"></div>
+      </div>
+    </div>
+
+    <!-- ===================== STUDENT REPORTS ===================== -->
+    <div class="section" id="section-reports">
+      <div class="card">
+        <h3>Batch Overview</h3>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+          <div>
+            <p style="font-size:12.5px;color:var(--text-soft);margin-bottom:8px;">Average score by parameter (batch)</p>
+            <div class="chart-wrap"><canvas id="batchBarChart"></canvas></div>
+          </div>
+          <div>
+            <p style="font-size:12.5px;color:var(--text-soft);margin-bottom:8px;">Readiness status distribution</p>
+            <div class="chart-wrap"><canvas id="statusPieChart"></canvas></div>
+          </div>
+        </div>
+        <p style="font-size:12.5px;color:var(--text-soft);margin:18px 0 8px;">
+          Average readiness by division &mdash; a Failures-division student at 40% reads very differently from a Hope Elite student at 40%
+        </p>
+        <div class="chart-wrap"><canvas id="divisionBarChart"></canvas></div>
+      </div>
+
+      <div class="card">
+        <h3>Individual Student Report</h3>
+        <select id="reportStudentSelect" style="margin-bottom:16px;"></select>
+        <div class="chart-wrap"><canvas id="studentBarChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- ===================== GITHUB TRACKER (all mentees) ===================== -->
+    <div class="section" id="section-github">
+      <div class="card">
+        <h3>GitHub Open Source Tracker &mdash; All Mentees</h3>
+        <p style="font-size:12.5px;color:var(--text-soft);margin-bottom:16px;">
+          Pulls each mentee's public repos, pull requests, merged PRs, issues, and contribution calendar straight from GitHub, using the username they saved under Info Requests.
+        </p>
+
+        <details style="margin-bottom:16px;">
+          <summary style="font-size:12px;color:var(--text-soft);cursor:pointer;">Your Personal Access Token (optional, needed for contribution calendars)</summary>
+          <input type="password" id="ghMentorToken" placeholder="ghp_..." style="margin-top:8px;" />
+          <p style="font-size:11.5px;color:var(--text-soft);margin-top:4px;">
+            GitHub requires an authenticated request for contribution-calendar data, even for public profiles, and raises your rate limit from 60/hr to 5,000/hr. No scopes needed. Saved only in this browser.
+          </p>
+        </details>
+
+        <button class="btn-submit" id="ghSyncAllBtn" onclick="syncAllMenteeGithub()">Sync All Mentees</button>
+
+        <div id="ghMenteeList" style="margin-top:18px;"></div>
+      </div>
+    </div>
+
+    <!-- ===================== REQUESTS ===================== -->
+    <div class="section" id="section-requests">
+      <div class="card">
+        <h3>Mark Change Requests</h3>
+        <p style="font-size:12.5px;color:var(--text-soft);margin-bottom:14px;">
+          Requests from mentees to change a mark on one of the 12 parameters, with proof attached.
+        </p>
+        <div id="requestList"></div>
+      </div>
+
+      <div class="card">
+        <h3>Task Completion Approvals</h3>
+        <p style="font-size:12.5px;color:var(--text-soft);margin-bottom:14px;">
+          Mentees marked these tasks complete and attached proof. They stay pending until you approve.
+        </p>
+        <div id="taskCompletionList"></div>
+      </div>
+    </div>
+
+    <!-- ===================== SETTINGS ===================== -->
+    <div class="section" id="section-settings">
+      <div class="card">
+        <h3>Appearance</h3>
+        <div class="theme-toggle-row">
+          <div>
+            <div style="font-size:13.5px;font-weight:600;">Dark mode</div>
+            <div style="font-size:12px;color:var(--text-soft);">Switch between light and dark theme</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="themeToggle" onchange="toggleTheme()" />
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>My Details</h3>
+        <label>Full Name</label>
+        <input type="text" id="settingName" />
+        <label>Email</label>
+        <input type="email" id="settingEmail" />
+        <label>Department</label>
+        <input type="text" id="settingDept" />
+        <button class="btn-submit" onclick="saveProfile()">Save Changes</button>
+      </div>
+
+      <div class="card">
+        <h3>Account</h3>
+        <button class="logout-btn" onclick="logout()">Log Out</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  /* =========================================================
+     Parameters (same 12-criteria framework used mentee-side)
+  ==========================================================*/
+  const PARAMETERS = [
+    { id: "coding", name: "Coding Problems Solved", tiers: [5,10,15,20,25] },
+    { id: "oss", name: "Open Source Contribution", tiers: [3,5,10,15,17,20] },
+    { id: "competition", name: "Competition Achievement", tiers: [2,4,6,10,15,20] },
+    { id: "certification", name: "Certification Achievement", tiers: [3,5,10,15] },
+    { id: "cp", name: "Competitive Programming Rating", tiers: [5,10,15,20] },
+    { id: "project", name: "Project / Product / Publication & Patent", tiers: [3,5,10,15,20,30] },
+    { id: "aptitude", name: "External Aptitude & Communication", tiers: [3,5,6,9,12,15] },
+    { id: "monthly", name: "Monthly Coding Assessment", tiers: [0,5,10,15,20] },
+    { id: "gate", name: "GATE & Optional Higher Studies", tiers: [3,5,10,15,20,25] },
+    { id: "internship", name: "Internship, Startup, Industry", tiers: [2,3,4,5,6,8,10,15,20] },
+    { id: "language", name: "Foreign Language Proficiency", tiers: [7,12,15] },
+    { id: "training", name: "Hundred Days Training Programme", tiers: [5,10,15] },
+  ];
+  function maxOf(paramId) {
+    const p = PARAMETERS.find(pp => pp.id === paramId);
+    return Math.max(...p.tiers);
+  }
+  const MAX_TOTAL = PARAMETERS.reduce((s, p) => s + Math.max(...p.tiers), 0);
+
+  /* =========================================================
+     The 5 divisions students are stratified into college-wide.
+     Coordinator distributes an even mix of each into every
+     mentor's group, rather than assigning by roll number.
+  ==========================================================*/
+  const DIVISIONS = ["Hope Elite", "Hope", "PEP", "Degree Focus", "Failures"];
+
+  /* =========================================================
+     Shared data: loaded from the shared store (store.js) so
+     changes here show up on the mentee page, and vice versa.
+  ==========================================================*/
+  // Guard: only a logged-in mentor gets in here.
+  if (sessionStorage.getItem("role") !== "mentor") {
+    window.location.href = "./login.html";
+  }
+  let mmStore = mmLoadStore();
+  let mentees = mmStore.mentees;
+  let markChangeRequests = mmStore.markChangeRequests;
+  let assignedItems = mmStore.assignedItems;
+  let taskCompletions = mmStore.taskCompletions;
+  let infoRequests = mmStore.infoRequests;
+
+  function persistStore() {
+    mmStore.mentees = mentees;
+    mmStore.markChangeRequests = markChangeRequests;
+    mmStore.assignedItems = assignedItems;
+    mmStore.taskCompletions = taskCompletions;
+    mmStore.infoRequests = infoRequests;
+    mmSaveStore(mmStore);
+  }
+
+  // Re-render if the mentee page changes shared data while this tab is open
+  window.addEventListener("storage", (e) => {
+    if (e.key !== MM_STORE_KEY) return;
+    mmStore = mmLoadStore();
+    mentees = mmStore.mentees;
+    markChangeRequests = mmStore.markChangeRequests;
+    assignedItems = mmStore.assignedItems;
+    taskCompletions = mmStore.taskCompletions;
+    infoRequests = mmStore.infoRequests;
+    renderDashboard();
+    renderAssignedList();
+    renderRequests();
+    applyState();
+    if (typeof renderGhMenteeList === "function") renderGhMenteeList();
+    if (chartsInitialized) refreshBatchAndStudentCharts();
+  });
+
+  /* =========================================================
+     Section / subtab switching
+  ==========================================================*/
+  function showSection(name, btn) {
+    document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+    document.getElementById("section-" + name).classList.add("active");
+    document.querySelectorAll(".nav-link").forEach(n => n.classList.remove("active"));
+    btn.classList.add("active");
+    if (name === "reports" && !chartsInitialized) initCharts();
+  }
+  function showSubtab(name, btn) {
+    document.querySelectorAll(".subtab-panel").forEach(p => p.classList.remove("open"));
+    document.getElementById("subtab-" + name).classList.add("open");
+    document.querySelectorAll(".subtab-btn").forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
+  }
+
+  /* =========================================================
+     Mentor profile (shared, in the store) + theme (local only,
+     since theme is a per-device preference, not shared data)
+  ==========================================================*/
+  const THEME_KEY = "mentormetrics_mentor_theme";
+  let theme = localStorage.getItem(THEME_KEY) || "light";
+
+  function applyState() {
+    document.getElementById("greetName").innerText = mmStore.mentor.name.split(" ").slice(-1)[0];
+    document.getElementById("settingName").value = mmStore.mentor.name;
+    document.getElementById("settingEmail").value = mmStore.mentor.email;
+    document.getElementById("settingDept").value = mmStore.mentor.dept;
+    document.body.classList.toggle("dark", theme === "dark");
+    document.getElementById("themeToggle").checked = theme === "dark";
+  }
+  function saveProfile() {
+    mmStore.mentor.name = document.getElementById("settingName").value.trim() || mmStore.mentor.name;
+    mmStore.mentor.email = document.getElementById("settingEmail").value.trim();
+    mmStore.mentor.dept = document.getElementById("settingDept").value.trim();
+    persistStore();
+    applyState();
+    alert("Profile details saved.");
+  }
+  function toggleTheme() {
+    theme = document.getElementById("themeToggle").checked ? "dark" : "light";
+    localStorage.setItem(THEME_KEY, theme);
+    document.body.classList.toggle("dark", theme === "dark");
+    if (chartsInitialized) refreshCharts();
+  }
+  function logout() {
+    if (confirm("Are you sure you want to log out?")) {
+      sessionStorage.removeItem("role");
+      sessionStorage.removeItem("userId");
+      window.location.href = "./login.html";
+    }
+  }
+
+  /* =========================================================
+     Dashboard: mentees + pending join requests
+  ==========================================================*/
+  function totalFor(m) { return PARAMETERS.reduce((s, p) => s + (m.scores[p.id] || 0), 0); }
+  function pctFor(m) { return Math.round((totalFor(m) / MAX_TOTAL) * 100); }
+  function statusFor(m) {
+    const p = pctFor(m);
+    if (p >= 70) return { label: "Placement Ready", tone: "teal" };
+    if (p >= 40) return { label: "On Track", tone: "warn" };
+    return { label: "Needs Attention", tone: "danger" };
+  }
+
+  function renderDashboard() {
+    document.getElementById("menteeCount").innerText = mentees.length;
+    const distinctDivisions = new Set(mentees.map(m => m.division)).size;
+    document.getElementById("divisionCount").innerText = distinctDivisions + " / 5";
+    const avg = mentees.length ? Math.round(mentees.reduce((s, m) => s + pctFor(m), 0) / mentees.length) : 0;
+    document.getElementById("batchAvg").innerText = avg + "%";
+
+    document.getElementById("divisionBreakdown").innerHTML = DIVISIONS.map(d => {
+      const count = mentees.filter(m => m.division === d).length;
+      return `<span class="item-type-tag task" style="margin-bottom:6px;display:inline-block;">${d}: ${count}</span>`;
+    }).join(" ");
+
+    document.getElementById("menteeList").innerHTML = mentees.map(m => {
+      const s = statusFor(m);
+      const tagClass = s.tone === "teal" ? "done" : s.tone === "warn" ? "warn" : "danger";
+      const domainTxt = m.domain ? ` (${m.domain})` : "";
+      return `
+        <div class="mentee-card">
+          <div class="mentee-info">
+            <div class="name">${m.name}</div>
+            <div class="sub">${m.regNo} &middot; ${m.division}${domainTxt} &middot; ${totalFor(m)} / ${MAX_TOTAL}</div>
+          </div>
+          <span class="task-tag ${tagClass}">${s.label}</span>
+        </div>
+      `;
+    }).join("") || `<p style="font-size:13px;color:var(--text-soft);">No mentees yet.</p>`;
+
+    renderNotifications();
+    renderAssigneeOptions();
+    renderReportStudentOptions();
+    renderStudentDetails();
+  }
+
+  /* =========================================================
+     Tasks / Projects / Polls
+  ==========================================================*/
+  function renderAssigneeOptions() {
+    const optsHtml = `<option value="all">All Mentees</option>` +
+      mentees.map(m => `<option value="${m.id}">${m.name}</option>`).join("");
+    document.getElementById("taskAssignee").innerHTML = optsHtml;
+    document.getElementById("projectAssignee").innerHTML = optsHtml;
+    document.getElementById("infoAssignee").innerHTML = optsHtml;
+  }
+  const taskParamSelect = document.getElementById("taskParam");
+  PARAMETERS.forEach(p => { taskParamSelect.innerHTML += `<option value="${p.id}">${p.name}</option>`; });
+
+  function addItem(type) {
+    if (type === "task") {
+      const title = document.getElementById("taskTitle").value.trim();
+      const due = document.getElementById("taskDue").value.trim();
+      if (!title || !due) { alert("Please fill the task title and due date."); return; }
+      assignedItems.push({
+        id: "t" + Date.now(), type: "task", title, param: document.getElementById("taskParam").value,
+        assignee: document.getElementById("taskAssignee").value, due,
+      });
+      document.getElementById("taskTitle").value = "";
+      document.getElementById("taskDue").value = "";
+    } else if (type === "project") {
+      const title = document.getElementById("projectTitle").value.trim();
+      const due = document.getElementById("projectDue").value.trim();
+      if (!title || !due) { alert("Please fill the project title and due date."); return; }
+      assignedItems.push({
+        id: "pr" + Date.now(), type: "project", title, desc: document.getElementById("projectDesc").value.trim(),
+        assignee: document.getElementById("projectAssignee").value, due,
+      });
+      document.getElementById("projectTitle").value = "";
+      document.getElementById("projectDesc").value = "";
+      document.getElementById("projectDue").value = "";
+    } else if (type === "poll") {
+      const q = document.getElementById("pollQuestion").value.trim();
+      const optsRaw = document.getElementById("pollOptions").value.trim();
+      if (!q || !optsRaw) { alert("Please fill the poll question and options."); return; }
+      assignedItems.push({
+        id: "pl" + Date.now(), type: "poll", question: q,
+        options: optsRaw.split(",").map(o => o.trim()).filter(Boolean), votes: {},
+      });
+      document.getElementById("pollQuestion").value = "";
+      document.getElementById("pollOptions").value = "";
+    } else if (type === "info") {
+      const label = document.getElementById("infoLabel").value.trim();
+      if (!label) { alert("Please describe what you're asking for."); return; }
+      infoRequests.push({
+        id: "info" + Date.now(), label, assignee: document.getElementById("infoAssignee").value,
+      });
+      document.getElementById("infoLabel").value = "";
+    }
+    persistStore();
+    renderAssignedList();
+    renderNotifications();
+  }
+
+  function assigneeName(id) {
+    if (id === "all") return "All Mentees";
+    const m = mentees.find(x => x.id === id);
+    return m ? m.name : "Unknown";
+  }
+
+  function renderAssignedList() {
+    const taskProjectPollHtml = assignedItems.map(it => {
+      if (it.type === "task") {
+        return `<div class="task-card">
+          <span class="item-type-tag task">Task</span>
+          <div class="task-title">${it.title}</div>
+          <div class="task-desc">Assigned to: ${assigneeName(it.assignee)} &middot; Due ${it.due}</div>
+        </div>`;
+      }
+      if (it.type === "project") {
+        return `<div class="task-card">
+          <span class="item-type-tag project">Project</span>
+          <div class="task-title">${it.title}</div>
+          <div class="task-desc">${it.desc || ""} &middot; Assigned to: ${assigneeName(it.assignee)} &middot; Due ${it.due}</div>
+        </div>`;
+      }
+      return `<div class="task-card">
+        <span class="item-type-tag poll">Poll</span>
+        <div class="task-title">${it.question}</div>
+        <div class="task-desc">Options: ${it.options.join(", ")}</div>
+      </div>`;
+    }).join("");
+
+    const infoHtml = infoRequests.map(r => {
+      const answeredCount = mentees.filter(m => m.customFields && m.customFields[r.id]).length;
+      const targetCount = r.assignee === "all" ? mentees.length : 1;
+      return `<div class="task-card">
+        <span class="item-type-tag info">Info Request</span>
+        <div class="task-title">${r.label}</div>
+        <div class="task-desc">Assigned to: ${assigneeName(r.assignee)} &middot; Answered: ${answeredCount} / ${targetCount}</div>
+      </div>`;
+    }).join("");
+
+    document.getElementById("assignedList").innerHTML = taskProjectPollHtml + infoHtml;
+  }
+
+  /* =========================================================
+     Student Details (personal info + editable marks)
+  ==========================================================*/
+  function renderStudentDetails() {
+    document.getElementById("studentDetailList").innerHTML = mentees.map(m => `
+      <div class="mentee-card" style="flex-direction:column; align-items:stretch;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div class="mentee-info">
+            <div class="name">${m.name}</div>
+            <div class="sub">${m.regNo} &middot; ${totalFor(m)} / ${MAX_TOTAL}</div>
+          </div>
+          <button class="btn-view" onclick="toggleStudentPanel('${m.id}')">View / Edit</button>
+        </div>
+        <div class="student-detail-panel" id="panel-${m.id}">
+          <div class="detail-grid">
+            <div class="detail-field"><div class="fl">Email</div><div class="fv">${m.email || "-"}</div></div>
+            <div class="detail-field"><div class="fl">Register Number</div><div class="fv">${m.regNo}</div></div>
+            <div class="detail-field"><div class="fl">Division</div><div class="fv">${m.division}${m.domain ? " (" + m.domain + ")" : ""}</div></div>
+            <div class="detail-field"><div class="fl">Father's Name</div><div class="fv">${m.fatherName || "-"}</div></div>
+            <div class="detail-field"><div class="fl">Father's Occupation</div><div class="fv">${m.fatherOcc || "-"}</div></div>
+            <div class="detail-field"><div class="fl">Mother's Name</div><div class="fv">${m.motherName || "-"}</div></div>
+            <div class="detail-field"><div class="fl">Mother's Occupation</div><div class="fv">${m.motherOcc || "-"}</div></div>
+          </div>
+
+          <div style="font-size:12.5px;color:var(--text-soft);margin-bottom:6px;">Info Requested by You</div>
+          <div class="detail-grid">
+            ${infoRequests.filter(r => r.assignee === "all" || r.assignee === m.id).map(r => `
+              <div class="detail-field"><div class="fl">${r.label}</div><div class="fv">${(m.customFields && m.customFields[r.id]) || "Not provided yet"}</div></div>
+            `).join("") || `<div class="detail-field"><div class="fv" style="color:var(--text-soft);">No info requests yet.</div></div>`}
+          </div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <div style="font-size:12.5px;color:var(--text-soft);">LeetCode Progress (auto-fetched)</div>
+            <button class="btn-view" id="lc-btn-${m.id}" onclick="syncMenteeLeetcode('${m.id}')">Sync Now</button>
+          </div>
+          <div id="lc-box-${m.id}">${mmLeetcodeStatsHtml(m.leetcodeStats)}</div>
+
+          <div style="margin-top:12px;">
+            <div style="font-size:12.5px;color:var(--text-soft);margin-bottom:4px;">Other Platforms (self-reported)</div>
+            <div class="readonly-mark">${m.otherPlatforms ? m.otherPlatforms.replace(/</g, "&lt;") : "Not submitted yet."}</div>
+          </div>
+
+          ${m.githubStats ? `
+            <div style="font-size:12.5px;color:var(--text-soft);margin:12px 0 6px;">GitHub Stats (auto-fetched)</div>
+            <div class="detail-grid">
+              <div class="detail-field"><div class="fl">Public Repos</div><div class="fv">${m.githubStats.publicRepos}</div></div>
+              <div class="detail-field"><div class="fl">Followers</div><div class="fv">${m.githubStats.followers}</div></div>
+              <div class="detail-field"><div class="fl">Merged PRs</div><div class="fv">${m.githubStats.mergedPRs}</div></div>
+              <div class="detail-field"><div class="fl">Top Language</div><div class="fv">${m.githubStats.topLanguage || "-"}</div></div>
+            </div>
+          ` : ""}
+
+          <div style="font-size:12.5px;color:var(--text-soft);margin-bottom:6px;">12-Parameter Scorecard</div>
+          ${PARAMETERS.map(p => `
+            <div class="marks-row">
+              <div>${p.name}</div>
+              <select id="mark-${m.id}-${p.id}">
+                <option value="0" ${m.scores[p.id] === 0 ? "selected" : ""}>0 (not achieved)</option>
+                ${p.tiers.map(t => `<option value="${t}" ${m.scores[p.id] === t ? "selected" : ""}>${t} marks</option>`).join("")}
+              </select>
+              <div style="text-align:right;color:var(--text-soft);">/ ${Math.max(...p.tiers)}</div>
+            </div>
+          `).join("")}
+          <button class="btn-submit" style="margin-top:14px;" onclick="saveMarks('${m.id}')">Save Marks</button>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  function toggleStudentPanel(id) {
+    document.getElementById("panel-" + id).classList.toggle("open");
+  }
+  function saveMarks(id) {
+    const m = mentees.find(x => x.id === id);
+    PARAMETERS.forEach(p => {
+      const val = Number(document.getElementById(`mark-${id}-${p.id}`).value);
+      m.scores[p.id] = val;
+    });
+    persistStore();
+    renderDashboard();
+    if (chartsInitialized) refreshBatchAndStudentCharts();
+    alert(m.name + "'s marks updated.");
+  }
+
+  /* ---------- LeetCode sync, mentor-initiated ----------
+     The mentor doesn't have to wait for the mentee to log in and
+     sync — as long as the LeetCode username has been submitted,
+     the mentor can pull fresh numbers on demand. ---------- */
+  let lcMentorSyncing = false;
+  async function syncMenteeLeetcode(id) {
+    if (lcMentorSyncing) return; // block overlapping syncs — this is what avoids 429s
+    const m = mentees.find(x => x.id === id);
+    const username = (m.customFields && m.customFields["leetcode-username"]) || "";
+    const box = document.getElementById("lc-box-" + id);
+    const btn = document.getElementById("lc-btn-" + id);
+    if (!username) {
+      box.innerHTML = `<p style="font-size:12.5px;color:#E85C5C;">${m.name} hasn't submitted a LeetCode username yet. It's requested under Info Requests.</p>`;
+      return;
+    }
+    lcMentorSyncing = true;
+    if (btn) btn.disabled = true;
+    box.innerHTML = `<p style="font-size:12.5px;color:var(--text-soft);">Fetching ${username}'s LeetCode progress... (up to 30s on the first call)</p>`;
+    try {
+      m.leetcodeStats = await mmFetchLeetcodeStats(username);
+      persistStore();
+      box.innerHTML = mmLeetcodeStatsHtml(m.leetcodeStats);
+    } catch (err) {
+      box.innerHTML = `<p style="font-size:12.5px;color:#E85C5C;">${mmLeetcodeErrorMessage(err)}</p>`;
+    } finally {
+      lcMentorSyncing = false;
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  /* Pull every mentee who has submitted a username, one after another,
+     with a pause between each — this spacing is what keeps repeated
+     syncs from hitting the public API's rate limit. */
+  async function syncAllLeetcode() {
+    if (lcMentorSyncing) return;
+    const btn = document.getElementById("syncAllLcBtn");
+    const withUser = mentees.filter(m => m.customFields && m.customFields["leetcode-username"]);
+    if (!withUser.length) { alert("No mentee has submitted a LeetCode username yet."); return; }
+    lcMentorSyncing = true;
+    btn.disabled = true;
+    let done = 0, failed = 0;
+    for (const m of withUser) {
+      btn.textContent = `Syncing ${++done}/${withUser.length}...`;
+      try {
+        m.leetcodeStats = await mmFetchLeetcodeStats(m.customFields["leetcode-username"]);
+      } catch (e) { failed++; }
+      persistStore();
+      await new Promise(r => setTimeout(r, 2000)); // space requests out to stay under the rate limit
+    }
+    lcMentorSyncing = false;
+    btn.disabled = false;
+    btn.textContent = "Sync All LeetCode";
+    renderStudentDetails();
+    alert(`Synced ${done - failed} of ${withUser.length} mentees.` + (failed ? ` ${failed} failed — open that student and hit Sync Now for the reason.` : ""));
+  }
+
+  /* =========================================================
+     Mark change requests + task completion approvals
+  ==========================================================*/
+  function renderRequests() {
+    document.getElementById("requestList").innerHTML = markChangeRequests.map(r => {
+      const m = mentees.find(x => x.id === r.studentId);
+      const p = PARAMETERS.find(x => x.id === r.parameter);
+      const current = m ? (m.scores[r.parameter] || 0) : 0;
+      const actions = r.status === "Pending" ? `
+        <div class="mentee-actions">
+          <button class="btn-accept" onclick="acceptMarkRequest('${r.id}')">Accept</button>
+          <button class="btn-reject" onclick="rejectMarkRequest('${r.id}')">Reject</button>
+        </div>` : "";
+      return `
+        <div class="req-card">
+          <div class="req-top">
+            <span class="req-name">${m ? m.name : "Unknown"}</span>
+            ${actions}
+          </div>
+          <div class="req-change">${p ? p.name : r.parameter}: ${current} &rarr; ${r.requested} marks</div>
+          <div class="req-proof">Proof: ${r.proof}</div>
+          <div class="req-status">${r.status}</div>
+        </div>
+      `;
+    }).join("") || `<p style="font-size:13px;color:var(--text-soft);">No pending requests.</p>`;
+
+    document.getElementById("taskCompletionList").innerHTML = taskCompletions.map(tc => {
+      const actions = tc.status === "Pending" ? `
+        <div class="mentee-actions">
+          <button class="btn-accept" onclick="acceptTaskCompletion('${tc.id}')">Accept</button>
+          <button class="btn-reject" onclick="rejectTaskCompletion('${tc.id}')">Reject</button>
+        </div>` : "";
+      return `
+        <div class="req-card">
+          <div class="req-top">
+            <span class="req-name">${tc.studentName}</span>
+            ${actions}
+          </div>
+          <div class="req-change">${tc.itemTitle}</div>
+          <div class="req-proof">Proof: ${tc.proof}</div>
+          <div class="req-status">${tc.status}</div>
+        </div>
+      `;
+    }).join("") || `<p style="font-size:13px;color:var(--text-soft);">No pending task completions.</p>`;
+  }
+  function acceptMarkRequest(id) {
+    const r = markChangeRequests.find(x => x.id === id);
+    const m = mentees.find(x => x.id === r.studentId);
+    if (m) m.scores[r.parameter] = r.requested;
+    r.status = "Approved";
+    persistStore();
+    renderRequests();
+    renderDashboard();
+    if (chartsInitialized) refreshBatchAndStudentCharts();
+  }
+  function rejectMarkRequest(id) {
+    const r = markChangeRequests.find(x => x.id === id);
+    r.status = "Rejected";
+    persistStore();
+    renderRequests();
+  }
+  function acceptTaskCompletion(id) {
+    const tc = taskCompletions.find(x => x.id === id);
+    tc.status = "Approved";
+    persistStore();
+    renderRequests();
+  }
+  function rejectTaskCompletion(id) {
+    const tc = taskCompletions.find(x => x.id === id);
+    tc.status = "Rejected";
+    persistStore();
+    renderRequests();
+  }
+
+  /* =========================================================
+     Notifications
+  ==========================================================*/
+  function renderNotifications() {
+    const items = [];
+    markChangeRequests.filter(r => r.status === "Pending").forEach(r => {
+      const m = mentees.find(x => x.id === r.studentId);
+      items.push({ icon: "📝", text: `${m ? m.name : "A student"} requested a mark change.`, time: "New" });
+    });
+    taskCompletions.filter(tc => tc.status === "Pending").forEach(tc => {
+      items.push({ icon: "✅", text: `${tc.studentName} marked "${tc.itemTitle}" complete, awaiting your approval.`, time: "New" });
+    });
+    document.getElementById("bellBadge").innerText = items.length;
+    document.getElementById("bellBadge").style.display = items.length ? "flex" : "none";
+    document.getElementById("notifList").innerHTML = items.map(n => `
+      <div class="notif-item">
+        <div class="notif-icon">${n.icon}</div>
+        <div class="notif-body">
+          <div class="notif-text">${n.text}</div>
+          <div class="notif-time">${n.time}</div>
+        </div>
+      </div>
+    `).join("") || `<div class="notif-item"><div class="notif-icon">🔔</div><div class="notif-body"><div class="notif-text">No new notifications.</div></div></div>`;
+  }
+  function toggleNotifications() {
+    document.getElementById("notifOverlay").classList.toggle("open");
+  }
+
+  /* =========================================================
+     Reports (charts, lazily created)
+  ==========================================================*/
+  let chartsInitialized = false;
+  let batchBarChartObj, statusPieChartObj, studentBarChartObj, divisionBarChartObj;
+
+  function accentColor() { return getComputedStyle(document.body).getPropertyValue("--accent").trim(); }
+
+  function divisionAverages() {
+    return DIVISIONS.map(d => {
+      const group = mentees.filter(m => m.division === d);
+      if (!group.length) return 0;
+      return Math.round(group.reduce((s, m) => s + pctFor(m), 0) / group.length);
+    });
+  }
+
+  function renderReportStudentOptions() {
+    const sel = document.getElementById("reportStudentSelect");
+    sel.innerHTML = mentees.map(m => `<option value="${m.id}">${m.name}</option>`).join("");
+    sel.onchange = () => { if (chartsInitialized) updateStudentChart(); };
+  }
+
+  function initCharts() {
+    const paramAverages = PARAMETERS.map(p => {
+      const avgVal = mentees.reduce((s, m) => s + (m.scores[p.id] || 0), 0) / (mentees.length || 1);
+      return Math.round((avgVal / Math.max(...p.tiers)) * 100);
+    });
+    batchBarChartObj = new Chart(document.getElementById("batchBarChart"), {
+      type: "bar",
+      data: { labels: PARAMETERS.map(p => p.name.split(" ")[0]), datasets: [{ data: paramAverages, backgroundColor: accentColor(), borderRadius: 6 }] },
+      options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100 } }, maintainAspectRatio: false },
+    });
+
+    const counts = { teal: 0, warn: 0, danger: 0 };
+    mentees.forEach(m => counts[statusFor(m).tone]++);
+    statusPieChartObj = new Chart(document.getElementById("statusPieChart"), {
+      type: "pie",
+      data: {
+        labels: ["Placement Ready", "On Track", "Needs Attention"],
+        datasets: [{ data: [counts.teal, counts.warn, counts.danger], backgroundColor: ["#4CAF7D", "#F5A25D", "#E85C5C"] }],
+      },
+      options: { maintainAspectRatio: false },
+    });
+
+    divisionBarChartObj = new Chart(document.getElementById("divisionBarChart"), {
+      type: "bar",
+      data: { labels: DIVISIONS, datasets: [{ data: divisionAverages(), backgroundColor: "#B9852F", borderRadius: 6 }] },
+      options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100 } }, maintainAspectRatio: false },
+    });
+
+    studentBarChartObj = new Chart(document.getElementById("studentBarChart"), {
+      type: "bar",
+      data: { labels: PARAMETERS.map(p => p.name.split(" ")[0]), datasets: [{ data: [], backgroundColor: accentColor(), borderRadius: 6 }] },
+      options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100 } }, maintainAspectRatio: false },
+    });
+
+    chartsInitialized = true;
+    updateStudentChart();
+  }
+
+  function updateStudentChart() {
+    const id = document.getElementById("reportStudentSelect").value;
+    const m = mentees.find(x => x.id === id) || mentees[0];
+    if (!m) return;
+    studentBarChartObj.data.datasets[0].data = PARAMETERS.map(p => Math.round(((m.scores[p.id] || 0) / Math.max(...p.tiers)) * 100));
+    studentBarChartObj.update();
+  }
+
+  function refreshBatchAndStudentCharts() {
+    if (!chartsInitialized) return;
+    const paramAverages = PARAMETERS.map(p => {
+      const avgVal = mentees.reduce((s, m) => s + (m.scores[p.id] || 0), 0) / (mentees.length || 1);
+      return Math.round((avgVal / Math.max(...p.tiers)) * 100);
+    });
+    batchBarChartObj.data.datasets[0].data = paramAverages;
+    batchBarChartObj.update();
+
+    const counts = { teal: 0, warn: 0, danger: 0 };
+    mentees.forEach(m => counts[statusFor(m).tone]++);
+    statusPieChartObj.data.datasets[0].data = [counts.teal, counts.warn, counts.danger];
+    statusPieChartObj.update();
+
+    divisionBarChartObj.data.datasets[0].data = divisionAverages();
+    divisionBarChartObj.update();
+
+    updateStudentChart();
+  }
+  function refreshCharts() {
+    if (!chartsInitialized) return;
+    batchBarChartObj.data.datasets[0].backgroundColor = accentColor();
+    batchBarChartObj.update();
+    studentBarChartObj.data.datasets[0].backgroundColor = accentColor();
+    studentBarChartObj.update();
+  }
+
+  /* =========================================================
+     GitHub Open Source Tracker — all mentees
+     Mirrors the mentee-side tracker exactly: one Sync per mentee
+     fetches REST stats (repos/PRs/merged/issues) AND, if a token
+     is present, the GraphQL contribution calendar in the same
+     call — full profile row, 5-stat grid, and heatmap together,
+     instead of stats and calendar being two separate steps.
+  ==========================================================*/
+  const GH_MENTOR_TOKEN_KEY = "mentormetrics_mentor_gh_token";
+  document.getElementById("ghMentorToken").value = localStorage.getItem(GH_MENTOR_TOKEN_KEY) || "";
+  document.getElementById("ghMentorToken").addEventListener("input", (e) => {
+    localStorage.setItem(GH_MENTOR_TOKEN_KEY, e.target.value.trim());
+  });
+
+  const GH_LEVEL_CLASS = {
+    NONE: "level-0", FIRST_QUARTILE: "level-1", SECOND_QUARTILE: "level-2",
+    THIRD_QUARTILE: "level-3", FOURTH_QUARTILE: "level-4",
+  };
+  // Per-mentee transient state (not persisted — recomputed each sync, same as the mentee page).
+  const ghMenteeState = {};   // menteeId -> "loading" | "error"
+  const ghMenteeError = {};   // menteeId -> error message
+  const ghMenteeContrib = {}; // menteeId -> { contrib, contribError, hasToken }
+
+  function menteeGithubUsername(m) {
+    return (m.customFields && m.customFields["github-username"]) || "";
+  }
+
+  function ghMenteeBodyHtml(m) {
+    const id = m.id;
+    const username = menteeGithubUsername(m);
+    if (!username) {
+      return `<p style="font-size:12.5px;color:var(--text-soft);margin-top:8px;">No GitHub username saved for this mentee.</p>`;
+    }
+    if (ghMenteeState[id] === "loading") {
+      return `
+        <p style="font-size:13px;color:var(--text-soft);margin:10px 0 14px;">Analyzing GitHub profile...</p>
+        <div class="gh-skeleton-grid">
+          <div class="gh-skeleton-card"></div><div class="gh-skeleton-card"></div>
+          <div class="gh-skeleton-card"></div><div class="gh-skeleton-card"></div><div class="gh-skeleton-card"></div>
+        </div>
+      `;
+    }
+    if (ghMenteeState[id] === "error") {
+      return `<p style="padding:16px 4px; color:#E85C5C; font-size:13.5px;">${ghMenteeError[id]}</p>`;
+    }
+    const g = m.githubStats;
+    if (!g) {
+      return `<p style="font-size:12.5px;color:var(--text-soft);margin-top:8px;">Not synced yet.</p>`;
+    }
+    const c = ghMenteeContrib[id] || {};
+    const stats = [
+      { icon: "⭐", val: g.publicRepos, label: "Public Repositories" },
+      { icon: "🔀", val: g.prCount, label: "Pull Requests" },
+      { icon: "✅", val: g.mergedPRs, label: "Merged Pull Requests" },
+      { icon: "🐛", val: g.issueCount, label: "Issues" },
+      { icon: "💬", val: c.contrib ? c.contrib.totalContributions : "—", label: "Contributions (past year)" },
+    ];
+    const heatmapHtml = c.contrib ? `
+      <div style="margin-top:22px;">
+        <div style="display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:6px;">
+          <h3 style="margin-bottom:4px;">Contribution Activity</h3>
+          <span style="font-size:12.5px;color:var(--text-soft);">${c.contrib.totalContributions} contributions in the last year</span>
+        </div>
+        <div style="overflow-x:auto; padding:4px 0 8px;">
+          <div class="gh-heatmap" id="ghHeatmap-${id}"></div>
+        </div>
+      </div>
+    ` : `
+      <p style="font-size:11.5px;color:var(--text-soft);margin-top:14px;">
+        ${c.hasToken
+          ? "Contribution calendar unavailable" + (c.contribError ? ": " + c.contribError : "") + "."
+          : "Add your personal access token above to see the contribution calendar — GitHub requires authentication for this data, even for public profiles."}
+      </p>
+    `;
+    return `
+      <div class="gh-profile-row" style="margin-top:14px;">
+        <img src="${g.avatarUrl}" alt="${g.login}" />
+        <div>
+          <div class="gh-name">${g.name || g.login}</div>
+          <div class="gh-login">@${g.login}${g.location ? " · " + g.location : ""}</div>
+        </div>
+      </div>
+      <div class="gh-stats-grid">
+        ${stats.map(s => `
+          <div class="gh-stat-card">
+            <div class="gh-stat-icon">${s.icon}</div>
+            <div class="gh-stat-val">${s.val}</div>
+            <div class="gh-stat-label">${s.label}</div>
+          </div>
+        `).join("")}
+      </div>
+      ${heatmapHtml}
+      <p style="font-size:11px;color:var(--text-soft);margin-top:10px;">Last synced: ${new Date(g.fetchedAt).toLocaleString()}</p>
+    `;
+  }
+
+  function renderGhMenteeList() {
+    document.getElementById("ghMenteeList").innerHTML = mentees.map(m => {
+      const username = menteeGithubUsername(m);
+      return `
+        <div class="mentee-card" style="flex-direction:column; align-items:stretch;">
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="mentee-info">
+              <div class="name">${m.name}</div>
+              <div class="sub">${username ? "@" + username : "No GitHub username on file"}</div>
+            </div>
+            <div class="mentee-actions">
+              ${username ? `<button class="btn-view" onclick="syncOneMenteeGithub('${m.id}')" ${ghMenteeState[m.id] === "loading" ? "disabled" : ""}>Sync</button>` : ""}
+            </div>
+          </div>
+          ${ghMenteeBodyHtml(m)}
+        </div>
+      `;
+    }).join("");
+
+    // Fill heatmap squares for any mentee whose contribution data is ready —
+    // built with dataset attrs (not per-square listeners) for the shared tooltip below.
+    mentees.forEach(m => {
+      const c = ghMenteeContrib[m.id];
+      if (!c || !c.contrib) return;
+      const heatmapEl = document.getElementById("ghHeatmap-" + m.id);
+      if (!heatmapEl) return;
+      heatmapEl.innerHTML = "";
+      c.contrib.weeks.forEach(week => week.contributionDays.forEach(day => {
+        const sq = document.createElement("div");
+        sq.className = "gh-heatmap-day " + (GH_LEVEL_CLASS[day.contributionLevel] || "level-0");
+        sq.dataset.date = day.date;
+        sq.dataset.count = day.contributionCount;
+        heatmapEl.appendChild(sq);
+      }));
+    });
+  }
+
+  // One shared tooltip + delegated hover for every mentee's heatmap, same pattern as the mentee page.
+  const ghMentorTooltip = document.createElement("div");
+  ghMentorTooltip.className = "gh-tooltip";
+  document.body.appendChild(ghMentorTooltip);
+  document.getElementById("ghMenteeList").addEventListener("mouseover", (e) => {
+    const sq = e.target.closest(".gh-heatmap-day");
+    if (!sq) return;
+    const count = sq.dataset.count;
+    ghMentorTooltip.innerText = `${sq.dataset.date}: ${count} contribution${count === "1" ? "" : "s"}`;
+    ghMentorTooltip.style.display = "block";
+  });
+  document.getElementById("ghMenteeList").addEventListener("mousemove", (e) => {
+    ghMentorTooltip.style.left = (e.clientX + 12) + "px";
+    ghMentorTooltip.style.top = (e.clientY + 12) + "px";
+  });
+  document.getElementById("ghMenteeList").addEventListener("mouseout", (e) => {
+    if (!e.target.closest(".gh-heatmap-day")) return;
+    ghMentorTooltip.style.display = "none";
+  });
+
+  async function fetchMenteeRestStats(username, token) {
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const [userRes, prRes, mergedRes, issueRes] = await Promise.all([
+      fetch(`https://api.github.com/users/${encodeURIComponent(username)}`, { headers }),
+      fetch(`https://api.github.com/search/issues?q=author:${encodeURIComponent(username)}+type:pr`, { headers }),
+      fetch(`https://api.github.com/search/issues?q=author:${encodeURIComponent(username)}+type:pr+is:merged`, { headers }),
+      fetch(`https://api.github.com/search/issues?q=author:${encodeURIComponent(username)}+type:issue`, { headers }),
+    ]);
+    if (userRes.status === 404) throw new Error(`GitHub user "${username}" not found.`);
+    if (userRes.status === 401) throw new Error("That personal access token was rejected. Double-check you copied it correctly, or leave it blank to try without one.");
+    if (userRes.status === 403) throw new Error(token
+      ? "GitHub's rate limit was hit even with a token. Wait a bit and try again."
+      : "GitHub's rate limit was hit (60 requests/hour without a token). Add a personal access token above and try again.");
+    if (!userRes.ok) throw new Error("Unable to fetch GitHub data.");
+    const user = await userRes.json();
+    return {
+      login: user.login,
+      name: user.name,
+      avatarUrl: user.avatar_url,
+      location: user.location,
+      publicRepos: user.public_repos,
+      followers: user.followers,
+      prCount: prRes.ok ? (await prRes.json()).total_count : 0,
+      mergedPRs: mergedRes.ok ? (await mergedRes.json()).total_count : 0,
+      issueCount: issueRes.ok ? (await issueRes.json()).total_count : 0,
+      fetchedAt: new Date().toISOString(),
+    };
+  }
+
+  async function ghFetchContributionCalendarMentorSide(username, token) {
+    const query = `
+      query($login: String!) {
+        user(login: $login) {
+          contributionsCollection {
+            contributionCalendar {
+              totalContributions
+              weeks { contributionDays { date contributionCount contributionLevel } }
+            }
+          }
+        }
+      }
+    `;
+    const res = await fetch("https://api.github.com/graphql", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ query, variables: { login: username } }),
+    });
+    if (!res.ok) throw new Error("GraphQL request failed (status " + res.status + ").");
+    const json = await res.json();
+    if (json.errors || !json.data || !json.data.user) {
+      throw new Error(json.errors ? json.errors[0].message : "No contribution data returned.");
+    }
+    return json.data.user.contributionsCollection.contributionCalendar;
+  }
+
+  async function syncOneMenteeGithub(menteeId) {
+    const m = mentees.find(x => x.id === menteeId);
+    const username = menteeGithubUsername(m);
+    if (!username) return;
+    const token = document.getElementById("ghMentorToken").value.trim();
+    ghMenteeState[menteeId] = "loading";
+    renderGhMenteeList();
+    try {
+      const stats = await fetchMenteeRestStats(username, token);
+      let contrib = null, contribError = null;
+      if (token) {
+        try { contrib = await ghFetchContributionCalendarMentorSide(username, token); }
+        catch (e) { contribError = e.message; }
+      }
+      m.githubStats = stats;
+      ghMenteeContrib[menteeId] = { contrib, contribError, hasToken: !!token };
+      delete ghMenteeState[menteeId];
+      persistStore();
+      renderGhMenteeList();
+    } catch (err) {
+      ghMenteeState[menteeId] = "error";
+      ghMenteeError[menteeId] = err.message;
+      renderGhMenteeList();
+    }
+  }
+
+  async function syncAllMenteeGithub() {
+    const token = document.getElementById("ghMentorToken").value.trim();
+    const targets = mentees.filter(m => menteeGithubUsername(m));
+    if (!targets.length) { alert("No mentees have a GitHub username saved yet."); return; }
+    const btn = document.getElementById("ghSyncAllBtn");
+    if (btn) btn.disabled = true;
+    targets.forEach(m => { ghMenteeState[m.id] = "loading"; });
+    renderGhMenteeList();
+    for (const m of targets) {
+      const username = menteeGithubUsername(m);
+      try {
+        const stats = await fetchMenteeRestStats(username, token);
+        let contrib = null, contribError = null;
+        if (token) {
+          try { contrib = await ghFetchContributionCalendarMentorSide(username, token); }
+          catch (e) { contribError = e.message; }
+        }
+        m.githubStats = stats;
+        ghMenteeContrib[m.id] = { contrib, contribError, hasToken: !!token };
+        delete ghMenteeState[m.id];
+      } catch (err) {
+        ghMenteeState[m.id] = "error";
+        ghMenteeError[m.id] = err.message;
+      }
+      persistStore();
+      renderGhMenteeList();
+      await new Promise(r => setTimeout(r, 400)); // space requests out, same caution as the LeetCode sync
+    }
+    if (btn) btn.disabled = false;
+  }
+
+  /* =========================================================
+     Init
+  ==========================================================*/
+  applyState();
+  renderDashboard();
+  renderAssignedList();
+  renderRequests();
+  renderGhMenteeList();
+</script>
+
+</body>
+</html>

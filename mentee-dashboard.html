@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>MentorMetrics - Mentee Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="store.js"></script>
+<script src="leetcode.js"></script>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="logo">
+      <img src="college-logo.png" alt="St. Joseph's College of Engineering" class="logo-img" />
+      <span>MentorMetrics</span>
+    </div>
+
+    <div class="nav-label">GENERAL</div>
+    <button class="nav-link active" onclick="showSection('dashboard', this)">Dashboard</button>
+    <button class="nav-link" onclick="showSection('tasks', this)">My Tasks</button>
+    <button class="nav-link" onclick="showSection('report', this)">Progress Report</button>
+    <button class="nav-link" onclick="showSection('github', this)">GitHub Tracker</button>
+    <button class="nav-link" onclick="showSection('request', this)">Request Mark Change</button>
+
+    <div class="nav-label">ACCOUNT</div>
+    <button class="nav-link" onclick="showSection('settings', this)">Settings</button>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <div class="topbar">
+      <h1>Hi, <b id="greetName"></b>!</h1>
+      <div class="topbar-right">
+        <div class="bell-wrap">
+          <button class="bell-btn" onclick="toggleNotifications()">
+            🔔
+            <span class="bell-badge" id="bellBadge">0</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Full-page notifications overlay -->
+    <div class="notif-overlay" id="notifOverlay" onclick="if(event.target===this) toggleNotifications()">
+      <div class="notif-page">
+        <div class="notif-page-header">
+          <h2>Notifications</h2>
+          <button class="notif-close-btn" onclick="toggleNotifications()">✕</button>
+        </div>
+        <div id="notifList"></div>
+      </div>
+    </div>
+
+    <!-- ===================== DASHBOARD ===================== -->
+    <div class="section active" id="section-dashboard">
+      <div class="stat-row">
+        <div class="stat-card purple">
+          <div class="num">4</div>
+          <div class="lbl">Tasks Completed</div>
+        </div>
+        <div class="stat-card orange">
+          <div class="num">3</div>
+          <div class="lbl">In Progress</div>
+        </div>
+        <div class="batch-card">
+          <div class="batch-row">
+            <div><b>18 / 25</b>Batch members finished this month's tasks</div>
+            <div><b>5</b>Students leading the 12-parameter score</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" id="mentorInfoCard">
+        <h3>My Mentor & Division</h3>
+        <div class="detail-grid">
+          <div class="detail-field"><div class="fl">Assigned Mentor</div><div class="fv" id="mentorNameField">-</div></div>
+          <div class="detail-field"><div class="fl">Department</div><div class="fv" id="mentorDeptField">-</div></div>
+          <div class="detail-field"><div class="fl">Division</div><div class="fv" id="mentorDivisionField">-</div></div>
+          <div class="detail-field"><div class="fl">Domain (if PEP)</div><div class="fv" id="mentorDomainField">-</div></div>
+        </div>
+        <p style="font-size:12px;color:var(--text-soft);">
+          Mentors are assigned by your department coordinator based on a stratified mix across all 5 divisions (Hope Elite, Hope, PEP, Degree Focus, Failures) &mdash; not something you request yourself.
+        </p>
+      </div>
+
+      <div class="content-grid">
+        <div class="card">
+          <h3>Recent Tasks</h3>
+          <div id="taskPreview"></div>
+        </div>
+        <div>
+          <div class="card timer-box">
+            <h3 style="text-align:left;">Task Ending Soon</h3>
+            <div class="timer-num" id="timerNum">--:--:--</div>
+            <div class="timer-label" id="timerLabel">Loading...</div>
+          </div>
+          <div class="card ai-box">
+            <h3>AI Study Assistant</h3>
+            <p style="font-size:12px;opacity:0.85;margin-bottom:10px;">Your priority plan, based on deadlines and your weakest parameter:</p>
+            <div id="aiPlanList"></div>
+            <div class="ai-chat">
+              <input type="text" id="aiQuestion" placeholder="Ask a doubt or how to finish something faster..." />
+              <button onclick="askAI()">Ask</button>
+            </div>
+            <div class="ai-answer" id="aiAnswer"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== MY TASKS ===================== -->
+    <div class="section" id="section-tasks">
+      <div class="card">
+        <h3>My Tasks</h3>
+        <div id="taskListFull"></div>
+      </div>
+    </div>
+
+    <!-- ===================== PROGRESS REPORT ===================== -->
+    <div class="section" id="section-report">
+      <div class="card">
+        <h3>Progress Report</h3>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:20px;">
+          <div>
+            <p style="font-size:12.5px;color:var(--text-soft);margin-bottom:8px;">Score by parameter</p>
+            <div class="chart-wrap"><canvas id="barChart"></canvas></div>
+          </div>
+          <div>
+            <p style="font-size:12.5px;color:var(--text-soft);margin-bottom:8px;">Task status split</p>
+            <div class="chart-wrap"><canvas id="pieChart"></canvas></div>
+          </div>
+        </div>
+        <p style="font-size:12.5px;color:var(--text-soft);margin:18px 0 8px;">Monthly consistency (coding assessment score)</p>
+        <div class="chart-wrap"><canvas id="consistencyChart"></canvas></div>
+      </div>
+
+      <div class="card">
+        <h3>Mentor Comments</h3>
+        <div class="comment">
+          <span class="who">Dr. R. Kalaiselvi</span><span class="when">2 Sep 2026</span>
+          <div class="txt">Good improvement in coding problems this month. Please focus on open-source contributions next.</div>
+        </div>
+        <div class="comment">
+          <span class="who">Dr. R. Kalaiselvi</span><span class="when">18 Aug 2026</span>
+          <div class="txt">Aptitude score is below the target band. Attempt at least two mock tests before the next review.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== GITHUB TRACKER ===================== -->
+    <div class="section" id="section-github">
+      <div class="card">
+        <h3>GitHub Open Source Contribution Tracker</h3>
+        <p style="font-size:12.5px;color:var(--text-soft);margin-bottom:16px;">
+          Look up any public GitHub profile's open-source activity &mdash; live from GitHub, nothing hardcoded.
+        </p>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; margin-bottom:8px;">
+          <div style="flex:1; min-width:180px;">
+            <label>GitHub Username</label>
+            <input type="text" id="ghUsername" placeholder="e.g. torvalds" style="margin-bottom:0;" />
+          </div>
+          <button class="btn-submit" style="margin-bottom:0;" onclick="analyzeGithubUser()">Analyze</button>
+        </div>
+
+        <details style="margin:10px 0 4px;">
+          <summary style="font-size:12px;color:var(--text-soft);cursor:pointer;">Personal Access Token (optional, needed for the contribution calendar)</summary>
+          <input type="password" id="ghTrackerToken" placeholder="ghp_..." style="margin-top:8px;" />
+          <p style="font-size:11.5px;color:var(--text-soft);margin-top:4px;">
+            GitHub only exposes contribution-calendar data to authenticated requests, and also raises your rate limit from 60/hr to 5,000/hr. No scopes needed. Saved only in this browser.
+          </p>
+        </details>
+
+        <!-- State: initial -->
+        <div id="ghInitialState" style="padding:24px 4px; color:var(--text-soft); font-size:13.5px;">
+          Enter a GitHub username to analyze your open-source activity.
+        </div>
+
+        <!-- State: loading -->
+        <div id="ghLoadingState" style="display:none; padding:16px 4px;">
+          <p style="font-size:13px;color:var(--text-soft);margin-bottom:14px;">Analyzing GitHub profile...</p>
+          <div class="gh-skeleton-grid">
+            <div class="gh-skeleton-card"></div>
+            <div class="gh-skeleton-card"></div>
+            <div class="gh-skeleton-card"></div>
+            <div class="gh-skeleton-card"></div>
+            <div class="gh-skeleton-card"></div>
+          </div>
+        </div>
+
+        <!-- State: error -->
+        <div id="ghErrorState" style="display:none; padding:24px 4px; color:#E85C5C; font-size:13.5px;"></div>
+
+        <!-- State: success -->
+        <div id="ghDashboard" style="display:none;">
+          <div class="gh-profile-row" id="ghProfileRow"></div>
+          <div class="gh-stats-grid" id="ghStatsGrid"></div>
+
+          <div style="margin-top:22px;">
+            <div style="display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:6px;">
+              <h3 style="margin-bottom:4px;">Contribution Activity</h3>
+              <span id="ghTotalContrib" style="font-size:12.5px;color:var(--text-soft);"></span>
+            </div>
+            <div id="ghHeatmapWrap" style="overflow-x:auto; padding:4px 0 8px;">
+              <div class="gh-heatmap" id="ghHeatmap"></div>
+            </div>
+            <div id="ghHeatmapNote" style="font-size:11.5px;color:var(--text-soft);"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== REQUEST MARK CHANGE ===================== -->
+    <div class="section" id="section-request">
+      <div class="card">
+        <h3>Request a Mark Change</h3>
+        <p style="font-size:12.5px;color:var(--text-soft);margin-bottom:14px;">
+          You cannot edit your marks directly. Submit a request with proof and your mentor will review it.
+        </p>
+        <label>Parameter</label>
+        <select id="paramSelect"></select>
+        <label>Current Mark</label>
+        <div class="readonly-mark" id="currentMark">-- / --</div>
+        <label>Requested Mark</label>
+        <input type="text" id="requestedMark" placeholder="e.g. 15" />
+        <label>Proof / Justification</label>
+        <textarea id="proofText" rows="3" placeholder="Link or short description of your proof (certificate, PR link, scorecard, etc.)"></textarea>
+        <button class="btn-submit" onclick="submitRequest()">Submit Request</button>
+        <div id="requestList"></div>
+      </div>
+    </div>
+
+    <!-- ===================== SETTINGS ===================== -->
+    <div class="section" id="section-settings">
+      <div class="card">
+        <h3>Appearance</h3>
+        <div class="theme-toggle-row">
+          <div>
+            <div style="font-size:13.5px;font-weight:600;">Dark mode</div>
+            <div style="font-size:12px;color:var(--text-soft);">Switch between light and dark theme</div>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="themeToggle" onchange="toggleTheme()" />
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>My Details</h3>
+        <div class="photo-upload-row">
+          <div id="photoPreviewWrap"></div>
+          <div>
+            <label style="margin-bottom:6px;">Passport-size Photo</label>
+            <input type="file" id="photoInput" accept="image/*" onchange="handlePhotoUpload(event)" />
+            <p style="font-size:11.5px;color:var(--text-soft);margin-top:6px;">Shown to your mentor next to your details and marks.</p>
+          </div>
+        </div>
+        <label>Full Name</label>
+        <input type="text" id="settingName" />
+        <label>Email</label>
+        <input type="email" id="settingEmail" />
+        <label>Phone Number</label>
+        <input type="text" id="settingPhone" placeholder="Add your phone number" />
+        <label>Register Number</label>
+        <div class="readonly-mark" id="settingRegNo">-</div>
+        <button class="btn-submit" onclick="saveProfile()">Save Changes</button>
+      </div>
+
+      <div class="card">
+        <h3>Info Requested by Mentor</h3>
+        <p style="font-size:12.5px;color:var(--text-soft);margin-bottom:14px;">
+          Your mentor can ask for any piece of information here &mdash; not just links. Fill in what applies and save.
+        </p>
+        <div id="infoRequestFields"></div>
+        <button class="btn-submit" onclick="saveDetails()">Submit to Mentor</button>
+      </div>
+
+      <div class="card">
+        <h3>LeetCode Progress</h3>
+        <p style="font-size:12.5px;color:var(--text-soft);margin-bottom:14px;">
+          Pulls your solved counts by difficulty (Easy/Medium/Hard). Requires your LeetCode Username saved above first. Your mentor sees this on their dashboard automatically &mdash; no screenshots needed.
+        </p>
+        <button class="btn-submit" id="syncLcBtn" onclick="syncLeetcodeStats()">Sync LeetCode Progress</button>
+        <div id="leetcodeStatsBox" style="margin-top:14px;"></div>
+      </div>
+
+      <div class="card">
+        <h3>Problems Solved on Other Platforms</h3>
+        <p style="font-size:12.5px;color:var(--text-soft);margin-bottom:14px;">
+          Codeforces, HackerRank, GeeksforGeeks, etc. This is entered manually &mdash; only LeetCode is auto-synced. Mention the platform and count, e.g. "Codeforces: 62, HackerRank: 40".
+        </p>
+        <textarea id="otherPlatformsInput" rows="3" placeholder="e.g. Codeforces: 62 solved, HackerRank: 40 solved, GFG: 25 solved" style="width:100%;resize:vertical;"></textarea>
+        <button class="btn-submit" style="margin-top:10px;" onclick="saveOtherPlatforms()">Save</button>
+      </div>
+
+      <div class="card">
+        <h3>GitHub Stats</h3>
+        <p style="font-size:12.5px;color:var(--text-soft);margin-bottom:14px;">
+          Pulls your public repo count, followers, merged PRs, and top language straight from GitHub's public API. Requires a GitHub Username saved above first.
+        </p>
+        <label>Personal Access Token (optional, raises rate limit to 5,000/hr)</label>
+        <input type="password" id="githubToken" placeholder="ghp_..." />
+        <p style="font-size:11.5px;color:var(--text-soft);margin:-6px 0 12px;">
+          Create one free at github.com/settings/tokens &mdash; no scopes needed. Saved only in this browser, never sent anywhere but GitHub's own API.
+        </p>
+        <button class="btn-submit" onclick="syncGithubStats()">Sync GitHub Stats</button>
+        <div id="githubStatsBox" style="margin-top:14px;"></div>
+      </div>
+
+      <div class="card">
+        <h3>Account</h3>
+        <button class="logout-btn" onclick="logout()">Log Out</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ---------- Section (tab) switching ----------
+  function showSection(name, btn) {
+    document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+    document.getElementById("section-" + name).classList.add("active");
+    document.querySelectorAll(".nav-link").forEach(n => n.classList.remove("active"));
+    btn.classList.add("active");
+    if (name === "report" && !chartsInitialized) {
+      initCharts();
+    }
+  }
+
+  // ---------- Shared store + identity ----------
+  // Guard: only a mentee who logged in gets in here.
+  if (sessionStorage.getItem("role") !== "mentee") {
+    window.location.href = "./login.html";
+  }
+  const MY_ID = sessionStorage.getItem("userId") || "s2"; // fallback for direct testing without login
+  let mmStore = mmLoadStore();
+  let myMentee = mmStore.mentees.find(m => m.id === MY_ID);
+
+  function persistStore() { mmSaveStore(mmStore); }
+
+  const PARAM_META = [
+    { id: "coding", name: "Coding Problems Solved", max: 25 },
+    { id: "oss", name: "Open Source Contribution", max: 20 },
+    { id: "competition", name: "Competition Achievement", max: 20 },
+    { id: "certification", name: "Certification Achievement", max: 15 },
+    { id: "cp", name: "Competitive Programming Rating", max: 20 },
+    { id: "project", name: "Project / Product / Publication & Patent", max: 30 },
+    { id: "aptitude", name: "External Aptitude & Communication", max: 20 },
+    { id: "monthly", name: "Monthly Coding Assessment", max: 20 },
+    { id: "gate", name: "GATE & Optional Higher Studies", max: 25 },
+    { id: "internship", name: "Internship, Startup, Industry", max: 20 },
+    { id: "language", name: "Foreign Language Proficiency", max: 15 },
+    { id: "training", name: "Hundred Days Training Programme", max: 15 },
+  ];
+  function getParameters() {
+    return PARAM_META.map(p => ({ ...p, current: myMentee.scores[p.id] || 0 }));
+  }
+
+  // Re-render if the mentor page changes shared data while this tab is open
+  window.addEventListener("storage", (e) => {
+    if (e.key !== MM_STORE_KEY) return;
+    mmStore = mmLoadStore();
+    myMentee = mmStore.mentees.find(m => m.id === MY_ID);
+    applyProfile();
+    updateMentorInfoCard();
+    renderAllTasks();
+    renderAIPlan();
+    renderMyRequests();
+    renderNotifications();
+    if (chartsInitialized) refreshCharts(true);
+  });
+
+  // ---------- My Mentor & Division card ----------
+  function updateMentorInfoCard() {
+    document.getElementById("mentorNameField").innerText = mmStore.mentor.name;
+    document.getElementById("mentorDeptField").innerText = mmStore.mentor.dept;
+    document.getElementById("mentorDivisionField").innerText = myMentee.division;
+    document.getElementById("mentorDomainField").innerText = myMentee.domain || "Not applicable";
+  }
+
+  // ---------- Tasks (derived from mentor-assigned items) ----------
+  function getMyItems() {
+    return mmStore.assignedItems.filter(it =>
+      (it.type === "task" || it.type === "project") && (it.assignee === "all" || it.assignee === MY_ID)
+    );
+  }
+  function completionFor(itemId) {
+    return mmStore.taskCompletions.find(tc => tc.studentId === MY_ID && tc.itemId === itemId);
+  }
+
+  function renderTask(item, withProof) {
+    const completion = completionFor(item.id);
+    let tag = "Due " + item.due, tagClass = "warn", progress = 0, actionHtml = "";
+
+    if (completion && completion.status === "Approved") {
+      tag = "Completed"; tagClass = "done"; progress = 100;
+    } else if (completion && completion.status === "Pending") {
+      tag = "Pending Approval"; tagClass = "pending"; progress = 60;
+      if (withProof) actionHtml = `<div style="font-size:12px;color:var(--text-soft);margin-top:8px;">Proof submitted. Waiting for mentor approval.</div>`;
+    } else {
+      if (withProof) {
+        actionHtml = `
+          <button class="complete-btn" onclick="openProof('${item.id}')">Mark as Complete</button>
+          <div class="proof-form" id="proofForm${item.id}">
+            <input type="text" id="proofLink${item.id}" placeholder="Paste proof link (certificate, PR, scorecard, etc.)" />
+            <button onclick="submitProof('${item.id}')">Submit for Mentor Approval</button>
+          </div>
+        `;
+      }
+    }
+
+    const desc = item.type === "project" ? (item.desc || "Project") : "Task";
+    return `
+      <div class="task-card">
+        <span class="item-type-tag ${item.type}">${item.type === "project" ? "Project" : "Task"}</span>
+        <span class="task-tag ${tagClass}">${tag}</span>
+        <div class="task-title">${item.title}</div>
+        <div class="task-desc">${desc}</div>
+        <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${progress}%"></div></div>
+        <div class="task-footer"><span>${item.due}</span><span>${progress}%</span></div>
+        ${withProof ? actionHtml : ""}
+      </div>
+    `;
+  }
+
+  function renderAllTasks() {
+    const items = getMyItems();
+    document.getElementById("taskPreview").innerHTML = items.map(it => renderTask(it, false)).join("") ||
+      `<p style="font-size:13px;color:var(--text-soft);">No tasks assigned yet.</p>`;
+    document.getElementById("taskListFull").innerHTML = items.map(it => renderTask(it, true)).join("") ||
+      `<p style="font-size:13px;color:var(--text-soft);">No tasks assigned yet.</p>`;
+  }
+
+  function openProof(itemId) {
+    document.getElementById("proofForm" + itemId).classList.toggle("open");
+  }
+  function submitProof(itemId) {
+    const link = document.getElementById("proofLink" + itemId).value;
+    if (!link) { alert("Please add a proof link before submitting."); return; }
+    const item = mmStore.assignedItems.find(it => it.id === itemId);
+    mmStore.taskCompletions.push({
+      id: "tc" + Date.now(), studentId: MY_ID, studentName: myMentee.name,
+      itemId, itemTitle: item.title, proof: link, status: "Pending",
+    });
+    persistStore();
+    renderAllTasks();
+    renderAIPlan();
+  }
+
+  // ---------- Timer (nearest active task) ----------
+  let secondsLeft = 2 * 24 * 60 * 60 + 5 * 60;
+  function updateTimer() {
+    if (secondsLeft <= 0) return;
+    secondsLeft--;
+    const d = Math.floor(secondsLeft / 86400);
+    const h = Math.floor((secondsLeft % 86400) / 3600);
+    const m = Math.floor((secondsLeft % 3600) / 60);
+    const s = secondsLeft % 60;
+    document.getElementById("timerNum").innerText =
+      (d > 0 ? d + "d " : "") + String(h).padStart(2,"0") + ":" + String(m).padStart(2,"0") + ":" + String(s).padStart(2,"0");
+    const active = getMyItems().find(it => !completionFor(it.id) || completionFor(it.id).status === "Rejected");
+    document.getElementById("timerLabel").innerText = active ? active.title : "No active tasks";
+  }
+  setInterval(updateTimer, 1000);
+  updateTimer();
+
+  // ---------- AI assistant: shared advice engine ----------
+  function adviceFor(topic) {
+    if (topic.includes("coding") || topic.includes("dsa")) {
+      return "Solve in short daily batches (5-6 problems/day) instead of cramming. It builds the streak faster and retains better than marathon sessions.";
+    }
+    if (topic.includes("open source") || topic.includes("pr") || topic.includes("github")) {
+      return "Filter GitHub issues by the 'good first issue' label. A small merged PR counts the same toward your tier as a big one, so go for quick wins first.";
+    }
+    if (topic.includes("aptitude")) {
+      return "Timebox one mock test every 2 days, then only review the questions you got wrong. Re-doing the whole test wastes time you don't need to spend.";
+    }
+    if (topic.includes("gate")) {
+      return "Batch your GATE practice tests on weekends when you have longer, uninterrupted blocks. Weekday slots are better spent on quick topic revision.";
+    }
+    if (topic.includes("certificat") || topic.includes("nptel")) {
+      return "Pick one certification track and finish it before starting another. Partially done certificates earn zero marks on this scorecard.";
+    }
+    if (topic.includes("deadline") || topic.includes("time") || topic.includes("plan")) {
+      return "Check the priority plan above. It's ordered by which deadline is closest and which parameter needs the most help.";
+    }
+    return "Focus on your weakest parameter first. Small, steady progress there raises your total score faster than polishing an area you're already strong in.";
+  }
+
+  function askAI() {
+    const q = document.getElementById("aiQuestion").value.toLowerCase();
+    const box = document.getElementById("aiAnswer");
+    box.innerText = adviceFor(q);
+    box.style.display = "block";
+  }
+
+  function keywordFor(item) {
+    return (item.title + " " + (item.desc || item.type)).toLowerCase();
+  }
+
+  function renderAIPlan() {
+    const active = getMyItems().filter(it => !completionFor(it.id) || completionFor(it.id).status === "Rejected");
+    const weakest = [...getParameters()].sort((a, b) => (a.current / a.max) - (b.current / b.max))[0];
+
+    let html = active.map((it, i) => `
+      <div class="ai-suggest">
+        <b>${i === 0 ? "Do first" : "Then"}:</b> ${it.title} (Due ${it.due}).
+        ${adviceFor(keywordFor(it))}
+      </div>
+    `).join("");
+
+    if (!active.length) {
+      html += `<div class="ai-suggest">No active tasks right now — nice work staying on top of things.</div>`;
+    }
+
+    html += `
+      <div class="ai-suggest">
+        <b>Weakest area:</b> ${weakest.name} is at ${weakest.current}/${weakest.max}.
+        Even 20-30 focused minutes a day here raises your total score faster than anywhere else right now.
+      </div>
+    `;
+    document.getElementById("aiPlanList").innerHTML = html;
+  }
+
+  // ---------- Request Mark Change ----------
+  const paramSelect = document.getElementById("paramSelect");
+  PARAM_META.forEach((p, i) => { paramSelect.innerHTML += `<option value="${p.id}">${p.name}</option>`; });
+  function showCurrentMark() {
+    const p = getParameters().find(x => x.id === paramSelect.value);
+    document.getElementById("currentMark").innerText = p.current + " / " + p.max;
+  }
+  paramSelect.addEventListener("change", showCurrentMark);
+  showCurrentMark();
+
+  function submitRequest() {
+    const p = getParameters().find(x => x.id === paramSelect.value);
+    const reqMark = document.getElementById("requestedMark").value;
+    const proof = document.getElementById("proofText").value;
+    if (!reqMark || !proof) { alert("Please fill the requested mark and proof before submitting."); return; }
+    mmStore.markChangeRequests.push({
+      id: "r" + Date.now(), studentId: MY_ID, parameter: p.id,
+      requested: Number(reqMark), proof, status: "Pending",
+    });
+    persistStore();
+    renderMyRequests();
+    document.getElementById("requestedMark").value = "";
+    document.getElementById("proofText").value = "";
+  }
+
+  function renderMyRequests() {
+    const mine = mmStore.markChangeRequests.filter(r => r.studentId === MY_ID);
+    document.getElementById("requestList").innerHTML = mine.map(r => {
+      const p = PARAM_META.find(x => x.id === r.parameter);
+      return `
+        <div class="request-item">
+          <b>${p ? p.name : r.parameter}</b>: &rarr; ${r.requested} marks<br/>
+          <span style="color:var(--text-soft);">Proof: ${r.proof}</span><br/>
+          <span class="status">${r.status === "Pending" ? "Pending mentor review" : r.status}</span>
+        </div>
+      `;
+    }).join("");
+  }
+
+  // ---------- Profile (shared) + theme (local only) ----------
+  const THEME_KEY = "mentormetrics_mentee_theme";
+  let theme = localStorage.getItem(THEME_KEY) || "light";
+
+  function myInfoRequests() {
+    return mmStore.infoRequests.filter(r => r.assignee === "all" || r.assignee === MY_ID);
+  }
+
+  function avatarHTML(mentee, sizeClass) {
+    if (mentee.photo) {
+      return `<img src="${mentee.photo}" class="avatar-photo ${sizeClass || ""}" alt="${mentee.name}" />`;
+    }
+    const initials = mentee.name.split(" ").map(w => w[0]).slice(0, 2).join("").toUpperCase();
+    return `<div class="avatar-initials ${sizeClass || ""}">${initials}</div>`;
+  }
+
+  function renderPhotoPreview() {
+    document.getElementById("photoPreviewWrap").innerHTML = avatarHTML(myMentee, "large");
+  }
+
+  function handlePhotoUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      const img = new Image();
+      img.onload = function () {
+        // Resize down to a small square icon so it stores compactly in localStorage.
+        const size = 200;
+        const canvas = document.createElement("canvas");
+        canvas.width = size; canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        const scale = Math.max(size / img.width, size / img.height);
+        const w = img.width * scale, h = img.height * scale;
+        ctx.drawImage(img, (size - w) / 2, (size - h) / 2, w, h);
+        myMentee.photo = canvas.toDataURL("image/jpeg", 0.85);
+        persistStore();
+        renderPhotoPreview();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function renderInfoRequestFields() {
+    if (!myMentee.customFields) myMentee.customFields = {};
+    document.getElementById("infoRequestFields").innerHTML = myInfoRequests().map(r => `
+      <label>${r.label}</label>
+      <input type="text" id="info-${r.id}" value="${myMentee.customFields[r.id] || ""}" />
+    `).join("") || `<p style="font-size:12.5px;color:var(--text-soft);">No requests from your mentor yet.</p>`;
+  }
+
+  function applyProfile() {
+    document.getElementById("greetName").innerText = myMentee.name.split(" ")[0];
+    document.getElementById("settingName").value = myMentee.name;
+    document.getElementById("settingEmail").value = myMentee.email;
+    document.getElementById("settingPhone").value = myMentee.phone || "";
+    document.getElementById("settingRegNo").innerText = myMentee.regNo;
+    renderPhotoPreview();
+    renderInfoRequestFields();
+    renderGithubStatsBox();
+    renderLeetcodeStatsBox();
+    document.getElementById("otherPlatformsInput").value = myMentee.otherPlatforms || "";
+    document.body.classList.toggle("dark", theme === "dark");
+    document.getElementById("themeToggle").checked = theme === "dark";
+  }
+
+  // ---------- Settings actions ----------
+  function saveProfile() {
+    myMentee.name = document.getElementById("settingName").value.trim() || myMentee.name;
+    myMentee.email = document.getElementById("settingEmail").value.trim();
+    myMentee.phone = document.getElementById("settingPhone").value.trim();
+    persistStore();
+    applyProfile();
+    updateMentorInfoCard();
+    alert("Profile details saved.");
+  }
+  function saveDetails() {
+    if (!myMentee.customFields) myMentee.customFields = {};
+    myInfoRequests().forEach(r => {
+      const val = document.getElementById("info-" + r.id).value.trim();
+      myMentee.customFields[r.id] = val;
+    });
+    persistStore();
+    renderNotifications();
+    alert("Details sent to your mentor.");
+  }
+
+  // ---------- Other-platform progress (manual entry, no fetching) ----------
+  function saveOtherPlatforms() {
+    myMentee.otherPlatforms = document.getElementById("otherPlatformsInput").value.trim();
+    persistStore();
+    alert("Saved. Your mentor can now see this.");
+  }
+
+  // ---------- LeetCode auto-fetch (via alfa-leetcode-api, no backend needed) ----------
+  function renderLeetcodeStatsBox() {
+    document.getElementById("leetcodeStatsBox").innerHTML = mmLeetcodeStatsHtml(myMentee.leetcodeStats);
+  }
+
+  let lcSyncing = false;
+  async function syncLeetcodeStats() {
+    if (lcSyncing) return; // ignore double-clicks/rapid re-syncs that trip the rate limit
+    if (!myMentee.customFields) myMentee.customFields = {};
+    const username = myMentee.customFields["leetcode-username"];
+    if (!username) {
+      alert("Save your LeetCode Username under 'Info Requested by Mentor' first.");
+      return;
+    }
+    lcSyncing = true;
+    const btn = document.getElementById("syncLcBtn");
+    btn.disabled = true;
+    const box = document.getElementById("leetcodeStatsBox");
+    box.innerHTML = `<p style="font-size:12.5px;color:var(--text-soft);">Fetching from LeetCode... (the public API can take up to 30s on the first call)</p>`;
+    try {
+      myMentee.leetcodeStats = await mmFetchLeetcodeStats(username);
+      persistStore();
+      renderLeetcodeStatsBox();
+    } catch (err) {
+      box.innerHTML = `<p style="font-size:12.5px;color:#E85C5C;">${mmLeetcodeErrorMessage(err)}</p>`;
+    } finally {
+      lcSyncing = false;
+      btn.disabled = false;
+    }
+  }
+
+  // ---------- GitHub auto-fetch (real public API, no backend needed) ----------
+  const GH_TOKEN_KEY = "mentormetrics_gh_token";
+  document.getElementById("githubToken").value = localStorage.getItem(GH_TOKEN_KEY) || "";
+
+  function renderGithubStatsBox() {
+    const box = document.getElementById("githubStatsBox");
+    if (!myMentee.githubStats) {
+      box.innerHTML = `<p style="font-size:12.5px;color:var(--text-soft);">Not synced yet.</p>`;
+      return;
+    }
+    const g = myMentee.githubStats;
+    box.innerHTML = `
+      <div class="detail-grid" style="margin-bottom:0;">
+        <div class="detail-field"><div class="fl">Public Repos</div><div class="fv">${g.publicRepos}</div></div>
+        <div class="detail-field"><div class="fl">Followers</div><div class="fv">${g.followers}</div></div>
+        <div class="detail-field"><div class="fl">Merged PRs</div><div class="fv">${g.mergedPRs}</div></div>
+        <div class="detail-field"><div class="fl">Top Language</div><div class="fv">${g.topLanguage || "-"}</div></div>
+      </div>
+      <p style="font-size:11.5px;color:var(--text-soft);margin-top:8px;">Last synced: ${new Date(g.fetchedAt).toLocaleString()}</p>
+    `;
+  }
+
+  async function syncGithubStats() {
+    if (!myMentee.customFields) myMentee.customFields = {};
+    const username = myMentee.customFields["github-username"];
+    if (!username) {
+      alert("Save your GitHub Username under 'Info Requested by Mentor' first.");
+      return;
+    }
+    const token = document.getElementById("githubToken").value.trim();
+    localStorage.setItem(GH_TOKEN_KEY, token);
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+    const box = document.getElementById("githubStatsBox");
+    box.innerHTML = `<p style="font-size:12.5px;color:var(--text-soft);">Fetching from GitHub...</p>`;
+    try {
+      const [userRes, reposRes, prRes] = await Promise.all([
+        fetch(`https://api.github.com/users/${encodeURIComponent(username)}`, { headers }),
+        fetch(`https://api.github.com/users/${encodeURIComponent(username)}/repos?per_page=100`, { headers }),
+        fetch(`https://api.github.com/search/issues?q=author:${encodeURIComponent(username)}+type:pr+is:merged`, { headers }),
+      ]);
+      if (userRes.status === 404) {
+        throw new Error(`No GitHub account found for username "${username}". Double-check the spelling in your saved details.`);
+      }
+      if (userRes.status === 401) {
+        throw new Error("That personal access token was rejected. Double-check you copied it correctly, or leave it blank to try without one.");
+      }
+      if (userRes.status === 403) {
+        throw new Error(token
+          ? "Rate limit hit even with a token. Wait a bit and try again."
+          : "GitHub's rate limit was hit (about 60 requests/hour without login). Add a personal access token above to raise this to 5,000/hour, or wait a bit.");
+      }
+      if (!userRes.ok) {
+        throw new Error(`GitHub returned an unexpected error (status ${userRes.status}).`);
+      }
+      const user = await userRes.json();
+      const repos = reposRes.ok ? await reposRes.json() : [];
+      const prData = prRes.ok ? await prRes.json() : { total_count: 0 };
+
+      const langCounts = {};
+      repos.forEach(r => { if (r.language) langCounts[r.language] = (langCounts[r.language] || 0) + 1; });
+      const topLanguage = Object.keys(langCounts).sort((a, b) => langCounts[b] - langCounts[a])[0] || null;
+
+      myMentee.githubStats = {
+        publicRepos: user.public_repos,
+        followers: user.followers,
+        mergedPRs: prData.total_count || 0,
+        topLanguage,
+        fetchedAt: new Date().toISOString(),
+      };
+      persistStore();
+      renderGithubStatsBox();
+    } catch (err) {
+      const isNetworkErr = err instanceof TypeError;
+      const msg = isNetworkErr
+        ? "Couldn't reach GitHub's API. This can happen if you're previewing the file somewhere that blocks outside network requests — try running it through a real local server instead."
+        : err.message;
+      box.innerHTML = `<p style="font-size:12.5px;color:#E85C5C;">${msg}</p>`;
+    }
+  }
+
+  /* =========================================================
+     GitHub Open Source Contribution Tracker
+     Calls GitHub's REST API (repos / PRs / issues — public,
+     works with or without a token) and GraphQL API (the
+     contribution calendar — GitHub requires a token for this
+     no matter whose data you're asking for). Everything runs
+     client-side; the token never leaves this browser except to
+     talk to GitHub directly, since there's no backend server.
+  ==========================================================*/
+  document.getElementById("ghTrackerToken").value = localStorage.getItem(GH_TOKEN_KEY) || "";
+  document.getElementById("ghTrackerToken").addEventListener("input", (e) => {
+    localStorage.setItem(GH_TOKEN_KEY, e.target.value.trim());
+  });
+
+  function ghShowState(state) {
+    ["ghInitialState", "ghLoadingState", "ghErrorState", "ghDashboard"].forEach(id => {
+      document.getElementById(id).style.display = id === state ? (state === "ghDashboard" ? "block" : "") : "none";
+    });
+  }
+
+  function ghShowError(message) {
+    document.getElementById("ghErrorState").innerText = message;
+    ghShowState("ghErrorState");
+  }
+
+  async function analyzeGithubUser() {
+    const username = document.getElementById("ghUsername").value.trim();
+    if (!username) { alert("Enter a GitHub username first."); return; }
+    const token = document.getElementById("ghTrackerToken").value.trim();
+    const restHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+
+    ghShowState("ghLoadingState");
+
+    try {
+      const [userRes, prRes, mergedRes, issueRes] = await Promise.all([
+        fetch(`https://api.github.com/users/${encodeURIComponent(username)}`, { headers: restHeaders }),
+        fetch(`https://api.github.com/search/issues?q=author:${encodeURIComponent(username)}+type:pr`, { headers: restHeaders }),
+        fetch(`https://api.github.com/search/issues?q=author:${encodeURIComponent(username)}+type:pr+is:merged`, { headers: restHeaders }),
+        fetch(`https://api.github.com/search/issues?q=author:${encodeURIComponent(username)}+type:issue`, { headers: restHeaders }),
+      ]);
+
+      if (userRes.status === 404) { ghShowError("GitHub user not found."); return; }
+      if (userRes.status === 403) {
+        ghShowError(token
+          ? "GitHub's rate limit was hit even with a token. Wait a bit and try again."
+          : "GitHub's rate limit was hit (60 requests/hour without a token). Add a personal access token above and try again.");
+        return;
+      }
+      if (!userRes.ok) { ghShowError("Unable to fetch GitHub data. Please try again."); return; }
+
+      const user = await userRes.json();
+      const prCount = prRes.ok ? (await prRes.json()).total_count : 0;
+      const mergedCount = mergedRes.ok ? (await mergedRes.json()).total_count : 0;
+      const issueCount = issueRes.ok ? (await issueRes.json()).total_count : 0;
+
+      // Contribution calendar needs GraphQL, which needs a token no matter whose data it is.
+      let contrib = null;
+      let contribError = null;
+      if (token) {
+        try {
+          contrib = await ghFetchContributionCalendar(username, token);
+        } catch (e) {
+          contribError = e.message;
+        }
+      }
+
+      ghRenderDashboard(user, { prCount, mergedCount, issueCount }, contrib, contribError, !!token);
+      ghShowState("ghDashboard");
+    } catch (err) {
+      ghShowError("Unable to fetch GitHub data. Please try again.");
+    }
+  }
+
+  async function ghFetchContributionCalendar(username, token) {
+    const query = `
+      query($login: String!) {
+        user(login: $login) {
+          contributionsCollection {
+            contributionCalendar {
+              totalContributions
+              weeks {
+                contributionDays { date contributionCount contributionLevel }
+              }
+            }
+          }
+        }
+      }
+    `;
+    const res = await fetch("https://api.github.com/graphql", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ query, variables: { login: username } }),
+    });
+    if (!res.ok) throw new Error("GraphQL request failed (status " + res.status + ").");
+    const json = await res.json();
+    if (json.errors || !json.data || !json.data.user) {
+      throw new Error(json.errors ? json.errors[0].message : "No contribution data returned.");
+    }
+    return json.data.user.contributionsCollection.contributionCalendar;
+  }
+
+  const GH_LEVEL_CLASS = {
+    NONE: "level-0", FIRST_QUARTILE: "level-1", SECOND_QUARTILE: "level-2",
+    THIRD_QUARTILE: "level-3", FOURTH_QUARTILE: "level-4",
+  };
+
+  function ghRenderDashboard(user, counts, contrib, contribError, hasToken) {
+    document.getElementById("ghProfileRow").innerHTML = `
+      <img src="${user.avatar_url}" alt="${user.login}" />
+      <div>
+        <div class="gh-name">${user.name || user.login}</div>
+        <div class="gh-login">@${user.login}${user.location ? " · " + user.location : ""}</div>
+      </div>
+    `;
+
+    const stats = [
+      { icon: "⭐", val: user.public_repos, label: "Public Repositories" },
+      { icon: "🔀", val: counts.prCount, label: "Pull Requests" },
+      { icon: "✅", val: counts.mergedCount, label: "Merged Pull Requests" },
+      { icon: "🐛", val: counts.issueCount, label: "Issues" },
+      { icon: "💬", val: contrib ? contrib.totalContributions : "—", label: "Contributions (past year)" },
+    ];
+    document.getElementById("ghStatsGrid").innerHTML = stats.map(s => `
+      <div class="gh-stat-card">
+        <div class="gh-stat-icon">${s.icon}</div>
+        <div class="gh-stat-val">${s.val}</div>
+        <div class="gh-stat-label">${s.label}</div>
+      </div>
+    `).join("");
+
+    const totalEl = document.getElementById("ghTotalContrib");
+    const noteEl = document.getElementById("ghHeatmapNote");
+    const heatmapEl = document.getElementById("ghHeatmap");
+
+    if (contrib) {
+      totalEl.innerText = `${contrib.totalContributions} contributions in the last year`;
+      noteEl.innerText = "";
+      heatmapEl.innerHTML = "";
+      contrib.weeks.forEach(week => {
+        week.contributionDays.forEach(day => {
+          const sq = document.createElement("div");
+          sq.className = "gh-heatmap-day " + (GH_LEVEL_CLASS[day.contributionLevel] || "level-0");
+          sq.dataset.date = day.date;
+          sq.dataset.count = day.contributionCount;
+          heatmapEl.appendChild(sq);
+        });
+      });
+    } else {
+      totalEl.innerText = "";
+      heatmapEl.innerHTML = "";
+      noteEl.innerText = hasToken
+        ? ("Contribution calendar unavailable" + (contribError ? ": " + contribError : "") + ".")
+        : "Add a personal access token above to see the contribution calendar — GitHub requires authentication for this data, even for public profiles.";
+    }
+  }
+
+  // One shared tooltip element + delegated hover, instead of per-square listeners.
+  const ghTooltip = document.createElement("div");
+  ghTooltip.className = "gh-tooltip";
+  document.body.appendChild(ghTooltip);
+  document.getElementById("ghHeatmap").addEventListener("mouseover", (e) => {
+    const sq = e.target.closest(".gh-heatmap-day");
+    if (!sq) return;
+    const count = sq.dataset.count;
+    ghTooltip.innerText = `${sq.dataset.date}: ${count} contribution${count === "1" ? "" : "s"}`;
+    ghTooltip.style.display = "block";
+  });
+  document.getElementById("ghHeatmap").addEventListener("mousemove", (e) => {
+    ghTooltip.style.left = (e.clientX + 12) + "px";
+    ghTooltip.style.top = (e.clientY + 12) + "px";
+  });
+  document.getElementById("ghHeatmap").addEventListener("mouseout", (e) => {
+    if (!e.target.closest(".gh-heatmap-day")) return;
+    ghTooltip.style.display = "none";
+  });
+
+  function logout() {
+    if (confirm("Are you sure you want to log out?")) {
+      sessionStorage.removeItem("role");
+      sessionStorage.removeItem("userId");
+      window.location.href = "./login.html";
+    }
+  }
+
+  function toggleTheme() {
+    theme = document.getElementById("themeToggle").checked ? "dark" : "light";
+    localStorage.setItem(THEME_KEY, theme);
+    document.body.classList.toggle("dark", theme === "dark");
+    if (chartsInitialized) refreshCharts();
+  }
+
+  // ---------- Notifications & mentor polls / info requests ----------
+  function getMyPolls() {
+    return mmStore.assignedItems.filter(it => it.type === "poll");
+  }
+  function unansweredInfoRequests() {
+    if (!myMentee.customFields) myMentee.customFields = {};
+    return myInfoRequests().filter(r => !myMentee.customFields[r.id]);
+  }
+
+  function renderNotifications() {
+    const polls = getMyPolls();
+    const pendingInfo = unansweredInfoRequests();
+    const total = polls.length + pendingInfo.length;
+    document.getElementById("bellBadge").innerText = total;
+    document.getElementById("bellBadge").style.display = total ? "flex" : "none";
+
+    const pollsHtml = polls.map(n => {
+      const myVote = n.votes && n.votes[MY_ID];
+      if (myVote) {
+        return `
+          <div class="notif-item">
+            <div class="notif-icon">📊</div>
+            <div class="notif-body">
+              <div class="notif-poll-q">${n.question}</div>
+              <div class="notif-voted">You voted: ${myVote}</div>
+            </div>
+          </div>
+        `;
+      }
+      const optionsHtml = n.options.map(opt => `
+        <button class="poll-option-btn" onclick="voteOnPoll('${n.id}', '${opt}')">${opt}</button>
+      `).join("");
+      return `
+        <div class="notif-item">
+          <div class="notif-icon">📊</div>
+          <div class="notif-body">
+            <div class="notif-poll-q">Poll: ${n.question}</div>
+            <div class="poll-options">${optionsHtml}</div>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    const infoHtml = pendingInfo.map(r => `
+      <div class="notif-item">
+        <div class="notif-icon">📝</div>
+        <div class="notif-body">
+          <div class="notif-poll-q">Requested: ${r.label}</div>
+          <div style="display:flex; gap:6px;">
+            <input type="text" id="notifInfo-${r.id}" placeholder="Your answer" style="flex:1; padding:6px 8px; border-radius:6px; border:1px solid var(--border); font-size:12.5px;" />
+            <button class="poll-option-btn" onclick="answerInfoFromNotif('${r.id}')">Submit</button>
+          </div>
+        </div>
+      </div>
+    `).join("");
+
+    document.getElementById("notifList").innerHTML = pollsHtml + infoHtml ||
+      `<div class="notif-item"><div class="notif-icon">🔔</div><div class="notif-body"><div class="notif-text">No new notifications.</div></div></div>`;
+  }
+
+  function answerInfoFromNotif(reqId) {
+    const val = document.getElementById("notifInfo-" + reqId).value.trim();
+    if (!val) return;
+    if (!myMentee.customFields) myMentee.customFields = {};
+    myMentee.customFields[reqId] = val;
+    persistStore();
+    renderNotifications();
+    renderInfoRequestFields();
+  }
+
+  function voteOnPoll(id, option) {
+    const poll = mmStore.assignedItems.find(n => n.id === id);
+    if (!poll.votes) poll.votes = {};
+    poll.votes[MY_ID] = option;
+    persistStore();
+    renderNotifications();
+  }
+
+  function toggleNotifications() {
+    document.getElementById("notifOverlay").classList.toggle("open");
+  }
+
+  // ---------- Charts (lazily created when Progress Report tab opens) ----------
+  let chartsInitialized = false;
+  let barChartObj, pieChartObj, consistencyChartObj;
+
+  function accentColor() { return getComputedStyle(document.body).getPropertyValue("--accent").trim(); }
+  function accentSoftColor() { return getComputedStyle(document.body).getPropertyValue("--accent-soft").trim(); }
+
+  function taskStatusCounts() {
+    const items = getMyItems();
+    let completed = 0, pending = 0, inProgress = 0;
+    items.forEach(it => {
+      const c = completionFor(it.id);
+      if (c && c.status === "Approved") completed++;
+      else if (c && c.status === "Pending") pending++;
+      else inProgress++;
+    });
+    return [completed, inProgress, pending];
+  }
+
+  function initCharts() {
+    const params = getParameters();
+    barChartObj = new Chart(document.getElementById("barChart"), {
+      type: "bar",
+      data: {
+        labels: params.map(p => p.name.split(" ")[0]),
+        datasets: [{ label: "Score", data: params.map(p => Math.round((p.current / p.max) * 100)), backgroundColor: accentColor(), borderRadius: 6 }]
+      },
+      options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100 } }, maintainAspectRatio: false }
+    });
+
+    pieChartObj = new Chart(document.getElementById("pieChart"), {
+      type: "pie",
+      data: {
+        labels: ["Completed", "In Progress", "Pending Approval"],
+        datasets: [{ data: taskStatusCounts(), backgroundColor: ["#4CAF7D", "#F5A25D", "#4C8DE8"] }]
+      },
+      options: { maintainAspectRatio: false }
+    });
+
+    consistencyChartObj = new Chart(document.getElementById("consistencyChart"), {
+      type: "bar",
+      data: {
+        labels: ["Apr", "May", "Jun", "Jul", "Aug", "Sep"],
+        datasets: [{ label: "Monthly Assessment Score", data: [55, 60, 58, 65, 70, 74], backgroundColor: accentSoftColor(), borderRadius: 6 }]
+      },
+      options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100 } }, maintainAspectRatio: false }
+    });
+
+    chartsInitialized = true;
+  }
+
+  function refreshCharts(dataChanged) {
+    barChartObj.data.datasets[0].backgroundColor = accentColor();
+    if (dataChanged) {
+      const params = getParameters();
+      barChartObj.data.datasets[0].data = params.map(p => Math.round((p.current / p.max) * 100));
+      pieChartObj.data.datasets[0].data = taskStatusCounts();
+      pieChartObj.update();
+    }
+    barChartObj.update();
+    consistencyChartObj.data.datasets[0].backgroundColor = accentSoftColor();
+    consistencyChartObj.update();
+  }
+
+  // ---------- Init ----------
+  applyProfile();
+  updateMentorInfoCard();
+  renderAllTasks();
+  renderAIPlan();
+  renderMyRequests();
+  renderNotifications();
+</script>
+
+</body>
+</html>

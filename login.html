@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — MentorMetrics</title>
+  <!-- 1. Base styles (Load this FIRST so variables & global classes exist) -->
+  <link rel="stylesheet" href="style.css">
+  <!-- Login specific styles -->
+  <link rel="stylesheet" href="login.css">
+ 
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+ 
+  <!-- Shared data store (mentee register numbers live here) -->
+  <script src="store.js"></script>
+</head>
+<body>
+ 
+  <!-- Shared Animated Background Elements -->
+  <div class="bg-elements">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="bg-grid"></div>
+  </div>
+ 
+  <div class="login-layout">
+ 
+    <!-- Left Panel: Branding & Features -->
+    <div class="login-sidebar animate-fade-up delay-1">
+      <div class="sidebar-title">
+        <div class="title-logo">
+          <i class="ph ph-magic-wand"></i>
+        </div>
+        <h1 class="hero-title">Mentor<span class="text-gradient">Metrics</span></h1>
+      </div>
+      <p class="hero-subtitle text-left">
+        Transform placement readiness tracking with intelligent 12-parameter evaluation, real-time dashboards, and AI-powered action plans.
+      </p>
+ 
+      <!-- Vertically Stacked Glass Cards -->
+      <div class="sidebar-cards">
+        <div class="stat-card float-1">
+          <div class="stat-icon icon-purple"><i class="ph ph-target"></i></div>
+          <div class="stat-info">
+            <div class="stat-value">250</div>
+            <div class="stat-label">Max Score</div>
+          </div>
+        </div>
+ 
+        <div class="stat-card float-2">
+          <div class="stat-icon icon-blue"><i class="ph ph-chart-bar"></i></div>
+          <div class="stat-info">
+            <div class="stat-value">12</div>
+            <div class="stat-label">Parameters</div>
+          </div>
+        </div>
+ 
+        <div class="stat-card float-3">
+          <div class="stat-icon icon-magenta"><i class="ph ph-brain"></i></div>
+          <div class="stat-info">
+            <div class="stat-value">AI</div>
+            <div class="stat-label">Analytics</div>
+          </div>
+        </div>
+      </div>
+    </div>
+ 
+    <!-- Right Panel: Login Form -->
+    <div class="login-form-container animate-fade-up delay-3">
+      <a href="login.html" class="back-btn"><i class="ph ph-arrow-left"></i> Back</a>
+ 
+      <div class="glass-form-card">
+        <div class="form-header">
+          <div class="college-icon"><i class="ph ph-graduation-cap"></i></div>
+          <h2>St. Joseph's College of Engineering</h2>
+          <p>MentorMetrics — Placement Readiness Portal</p>
+        </div>
+ 
+        <!-- Role Toggle -->
+        <div class="role-toggle">
+          <button type="button" class="role-btn active" id="btn-mentee">Mentee</button>
+          <button type="button" class="role-btn" id="btn-mentor">Mentor</button>
+        </div>
+ 
+        <!-- The Form -->
+        <form id="login-form">
+          <div class="input-group">
+            <label for="reg-number" id="reg-label">Register Number</label>
+            <div class="input-wrapper">
+              <i class="ph ph-user input-icon"></i>
+              <input type="text" id="reg-number" placeholder="e.g. 21CS0142" required>
+            </div>
+          </div>
+ 
+          <div class="input-group">
+            <label for="password">Password</label>
+            <div class="input-wrapper">
+              <i class="ph ph-lock-key input-icon"></i>
+              <input type="password" id="password" placeholder="Enter your password" required>
+              <button type="button" class="btn-icon" id="toggle-password">
+                <i class="ph ph-eye"></i>
+              </button>
+            </div>
+          </div>
+ 
+          <div class="input-group">
+            <label>Security Captcha</label>
+            <div class="captcha-box">
+              <div class="captcha-display" id="captcha-text">G98r7E</div>
+              <button type="button" class="btn-icon refresh-captcha" id="refresh-captcha">
+                <i class="ph ph-arrows-clockwise"></i>
+              </button>
+            </div>
+            <div class="input-wrapper">
+              <i class="ph ph-shield-check input-icon"></i>
+              <input type="text" id="captcha-input" placeholder="Enter the captcha above" required>
+            </div>
+          </div>
+ 
+          <!-- Error message area -->
+          <p id="login-error" class="login-error" style="display:none; color:#e74c3c; font-size:0.9rem; margin:-0.5rem 0 1rem;"></p>
+ 
+          <button type="submit" class="w-100">
+            Sign In <i class="ph ph-caret-right"></i>
+          </button>
+ 
+          <a href="#" class="forgot-link">Forgot your password?</a>
+        </form>
+      </div>
+    </div>
+ 
+  </div>
+ 
+  <!-- Vanilla JS for Login Functionality -->
+  <script>
+    // Mentee / Mentor Toggle
+    const btnMentee = document.getElementById('btn-mentee');
+    const btnMentor = document.getElementById('btn-mentor');
+    const regInput = document.getElementById('reg-number');
+    const regLabel = document.getElementById('reg-label');
+ 
+    // Track which role is currently selected. Starts as "mentee"
+    // since that toggle has the "active" class by default in the HTML.
+    let selectedRole = 'mentee';
+ 
+    btnMentee.addEventListener('click', () => {
+      selectedRole = 'mentee';
+      btnMentee.classList.add('active');
+      btnMentor.classList.remove('active');
+      regLabel.textContent = 'Register Number';
+      regInput.placeholder = 'e.g. 21CS0142';
+    });
+ 
+    btnMentor.addEventListener('click', () => {
+      selectedRole = 'mentor';
+      btnMentor.classList.add('active');
+      btnMentee.classList.remove('active');
+      regLabel.textContent = 'Faculty ID';
+      regInput.placeholder = 'e.g. TCS98';
+    });
+ 
+    // Password Visibility Toggle
+    const togglePasswordBtn = document.getElementById('toggle-password');
+    const passwordInput = document.getElementById('password');
+    const eyeIcon = togglePasswordBtn.querySelector('i');
+ 
+    togglePasswordBtn.addEventListener('click', () => {
+      if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        eyeIcon.classList.replace('ph-eye', 'ph-eye-slash');
+      } else {
+        passwordInput.type = 'password';
+        eyeIcon.classList.replace('ph-eye-slash', 'ph-eye');
+      }
+    });
+ 
+    // Simple Captcha Generator
+    const captchaText = document.getElementById('captcha-text');
+    const refreshCaptchaBtn = document.getElementById('refresh-captcha');
+    const captchaInput = document.getElementById('captcha-input');
+ 
+    function generateCaptcha() {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+      let result = '';
+      for (let i = 0; i < 6; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      // Store the raw (no-space) captcha for comparison,
+      // display it spaced-out for readability.
+      captchaText.dataset.raw = result;
+      captchaText.textContent = result.split('').join(' ');
+    }
+ 
+    refreshCaptchaBtn.addEventListener('click', generateCaptcha);
+    generateCaptcha();
+ 
+    // ---- Credentials ----
+    // Mentor: a single fixed faculty ID (Dr. Kalaiselvi's staff login).
+    const MENTOR_ID = "TCS98";
+
+    // Shared default password for everyone (mentor + all mentees).
+    // Not shown anywhere in the UI — no placeholder hint, no autofill,
+    // not printed to console — so it isn't visible just from opening the page.
+    const MM_DEFAULT_PASSWORD = "MM@StJoseph2026";
+ 
+    // Mentee: must match one of the register numbers under this mentor,
+    // pulled from the shared store (store.js) instead of a hardcoded list,
+    // so every one of Kalaiselvi's 5 mentees can log in as themselves.
+    function findMenteeByRegNo(regNo) {
+      const store = mmLoadStore();
+      return store.mentees.find(m => m.regNo.toLowerCase() === regNo.toLowerCase());
+    }
+ 
+    // ---- Single Submit Button -> Route by selectedRole ----
+    const loginForm = document.getElementById('login-form');
+    const loginError = document.getElementById('login-error');
+ 
+    function showError(message) {
+      loginError.textContent = message;
+      loginError.style.display = 'block';
+    }
+ 
+    function clearError() {
+      loginError.style.display = 'none';
+      loginError.textContent = '';
+    }
+ 
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      clearError();
+ 
+      const idValue = regInput.value.trim();
+      const passwordValue = passwordInput.value.trim();
+      const captchaValue = captchaInput.value.trim();
+      const correctCaptcha = captchaText.dataset.raw;
+ 
+      // 1. Basic required-field check (native "required" already covers this,
+      //    but double-check in case validation is bypassed)
+      if (!idValue || !passwordValue || !captchaValue) {
+        showError('Please fill in all fields.');
+        return;
+      }
+ 
+      // 2. Captcha check
+      if (captchaValue !== correctCaptcha) {
+        showError('Captcha does not match. Please try again.');
+        generateCaptcha();
+        captchaInput.value = '';
+        return;
+      }
+ 
+      // 3. Shared password check — same password for mentor and every mentee
+      if (passwordValue !== MM_DEFAULT_PASSWORD) {
+        showError('Incorrect password.');
+        return;
+      }
+
+      // 4. Real credential check, routed by which toggle is active
+      if (selectedRole === 'mentor') {
+        if (idValue !== MENTOR_ID) {
+          showError('Invalid Faculty ID. Access denied.');
+          return;
+        }
+        sessionStorage.setItem('role', 'mentor');
+        sessionStorage.setItem('userId', MENTOR_ID);
+        window.location.href = './mentor-dashboard.html';
+      } else {
+        const mentee = findMenteeByRegNo(idValue);
+        if (!mentee) {
+          showError('Register number not recognized. Contact your mentor if this is a mistake.');
+          return;
+        }
+        sessionStorage.setItem('role', 'mentee');
+        sessionStorage.setItem('userId', mentee.id);
+        window.location.href = './mentee-dashboard.html';
+      }
+    });
+  </script>
+</body>
+</html>
